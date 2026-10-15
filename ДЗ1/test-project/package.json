@@ -1,7 +1,7 @@
 {
-  "name": "habit-tracker-test",
+  "name": "porovnu-test",
   "version": "0.1.0",
-  "description": "Тестовый проект для проверки работы Claude Code: расчёт серий выполнения привычек",
+  "description": "Тестовый проект для проверки Claude Code: расчёт балансов и переводов для приложения «ПоРовну»",
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.js"
