@@ -1,0 +1,34 @@
+# Проверка кода из ответов агента (облачная сессия, 2026-10-15 23:52)
+# TypeScript 6.0.3, режим strict + noUnusedLocals/Parameters; тесты — через shim/run.ts (замена vitest)
+
+### tsc --strict: after (все .ts, без React-компонента)
+exit code: 0
+
+### tsc --strict: cot (все .ts, включая тесты)
+exit code: 0
+
+### тесты: after
+тестов: 12, прошло: 12, упало: 0
+
+### рендеринг ExpenseCard (сценарии из ExpenseCard.test.tsx): after
+✔ участник
+✔ плательщик
+✔ не участвует
+✔ без участников
+✔ неизвестный плательщик
+сценариев: 5, прошло: 5
+
+### тесты: cot (шаги 2–4)
+тестов: 81, прошло: 81, упало: 0
+
+### файлы тестов cot
+src/features/balances/balances.edgeCases.test.ts
+src/features/balances/calculateBalances.test.ts
+src/features/balances/canLeaveGroup.test.ts
+src/features/balances/getBalanceStatus.test.ts
+src/features/balances/getExpenseShares.test.ts
+src/features/balances/settleGroup.test.ts
+src/features/balances/suggestTransfers.test.ts
+src/features/balances/validateLedger.test.ts
+src/lib/money.test.ts
+src/lib/splitByWeights.test.ts
