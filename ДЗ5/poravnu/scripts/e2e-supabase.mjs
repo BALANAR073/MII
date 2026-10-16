@@ -232,6 +232,26 @@ if (!SEED_DEMO) {
     return `HTTP ${status}`;
   });
 
+  await check('Email других участников не читается (права на колонки)', 'GET /rest/v1/profiles?select=email — от Бори', async () => {
+    const { error, status } = await borya.c.from('profiles').select('email');
+    expect(error?.code === '42501', `ожидался 42501, получено ${error?.code}`);
+    return `HTTP ${status}, code ${error.code}`;
+  });
+
+  await check('Нельзя подменить created_at при вставке (права на колонки)', 'POST /rest/v1/transfers {created_at: "2000-01-01"}', async () => {
+    const { error, status } = await borya.c
+      .from('transfers')
+      .insert({ group_id: groupId, from_id: borya.id, to_id: anya.id, amount_kop: 1, created_at: '2000-01-01T00:00:00Z' });
+    expect(error?.code === '42501', `ожидался 42501, получено ${error?.code}`);
+    return `HTTP ${status}, code ${error.code}`;
+  });
+
+  await check('Служебные функции не опубликованы в API (схема private)', 'POST /rest/v1/rpc/is_active_member', async () => {
+    const { error, status } = await borya.c.rpc('is_active_member', { p_group: groupId });
+    expect(status === 404 && error?.code === 'PGRST202', `HTTP ${status} ${error?.code}`);
+    return `HTTP ${status}, ${error.code} — функция не найдена в схеме public`;
+  });
+
   await check('Истёкший / поддельный токен — 401', 'GET /rest/v1/groups с Authorization: Bearer <поддельный JWT>', async () => {
     const response = await fetch(`${URL}/rest/v1/groups?select=id`, {
       headers: { apikey: KEY, Authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.invalid' },
