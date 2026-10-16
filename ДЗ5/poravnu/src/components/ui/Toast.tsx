@@ -1,0 +1,135 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { cx } from '../../lib/cx';
+
+export interface ToastOptions {
+  message: string;
+  tone?: 'info' | 'error' | 'success';
+  /** Кнопка в тосте: «Повторить», «Отменить». */
+  action?: { label: string; onClick: () => void };
+  durationMs?: number;
+}
+
+interface ToastItem extends Required<Omit<ToastOptions, 'action'>> {
+  id: number;
+  action: ToastOptions['action'];
+}
+
+interface ToastApi {
+  showToast: (options: ToastOptions) => number;
+  dismissToast: (id: number) => void;
+}
+
+const ToastContext = createContext<ToastApi | null>(null);
+
+const DEFAULT_DURATION_MS = 5000;
+
+interface ToastProviderProps {
+  children: ReactNode;
+}
+
+/** Хранит очередь уведомлений и показывает их внизу экрана с aria-live. */
+export function ToastProvider({ children }: ToastProviderProps) {
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const nextId = useRef(1);
+
+  const dismissToast = useCallback((id: number) => {
+    setToasts((current) => current.filter((toast) => toast.id !== id));
+  }, []);
+
+  const showToast = useCallback((options: ToastOptions) => {
+    const id = nextId.current;
+    nextId.current += 1;
+    setToasts((current) => [
+      // Тосты с действием («Отменить») не вытесняются новыми уведомлениями (находка 9 AI-ревью).
+      ...current.filter((toast, index) => toast.action !== undefined || index >= current.length - 2),
+      {
+        id,
+        message: options.message,
+        tone: options.tone ?? 'info',
+        action: options.action,
+        durationMs: options.durationMs ?? DEFAULT_DURATION_MS,
+      },
+    ]);
+    return id;
+  }, []);
+
+  const api = useMemo(() => ({ showToast, dismissToast }), [showToast, dismissToast]);
+
+  return (
+    <ToastContext.Provider value={api}>
+      {children}
+      <div
+        aria-live="polite"
+        className="pointer-events-none fixed inset-x-0 bottom-20 z-50 flex flex-col items-center gap-2 px-4 lg:bottom-6"
+      >
+        {toasts.map((toast) => (
+          <ToastView key={toast.id} toast={toast} onDismiss={dismissToast} />
+        ))}
+      </div>
+    </ToastContext.Provider>
+  );
+}
+
+/**
+ * Доступ к уведомлениям из любого компонента внутри `ToastProvider`.
+ * @returns Функции показа и скрытия тоста.
+ * @throws {Error} Если провайдер не подключён.
+ */
+export function useToast(): ToastApi {
+  const api = useContext(ToastContext);
+  if (api === null) {
+    throw new Error('useToast нужно вызывать внутри ToastProvider');
+  }
+  return api;
+}
+
+interface ToastViewProps {
+  toast: ToastItem;
+  onDismiss: (id: number) => void;
+}
+
+function ToastView({ toast, onDismiss }: ToastViewProps) {
+  // Пока на тост навели мышь или в нём фокус, таймер стоит (WCAG 2.2.1, находка 9 AI-ревью).
+  const [paused, setPaused] = useState(false);
+  const remainingRef = useRef(toast.durationMs);
+
+  useEffect(() => {
+    if (paused) {
+      return undefined;
+    }
+    const startedAt = Date.now();
+    const timer = window.setTimeout(() => onDismiss(toast.id), remainingRef.current);
+    return () => {
+      window.clearTimeout(timer);
+      remainingRef.current = Math.max(0, remainingRef.current - (Date.now() - startedAt));
+    };
+  }, [paused, toast.id, onDismiss]);
+
+  return (
+    // Роль не ставим: сообщения объявляет общий aria-live контейнера, иначе скринридер читает их дважды (находка 15).
+    <div
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+      className={cx(
+        'pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-xl px-4 py-3 text-sm shadow-lg',
+        toast.tone === 'error' ? 'bg-rose-700 text-white' : 'bg-slate-900 text-white',
+      )}
+    >
+      <span className="flex-1">{toast.message}</span>
+      {toast.action !== undefined && (
+        <button
+          type="button"
+          className="min-h-11 rounded-xl px-3 font-semibold text-emerald-200 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+          onClick={() => {
+            toast.action?.onClick();
+            onDismiss(toast.id);
+          }}
+        >
+          {toast.action.label}
+        </button>
+      )}
+    </div>
+  );
+}
