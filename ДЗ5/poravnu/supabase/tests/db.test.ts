@@ -113,7 +113,7 @@ describe('Row Level Security (ТЗ, раздел 3.1)', () => {
       const result = await k.t.db.query(`select * from public.${table}`);
       expect(result.rows, table).toHaveLength(0);
     }
-    const profiles = await k.t.db.query(`select * from public.profiles`);
+    const profiles = await k.t.db.query(`select id, name from public.profiles`);
     expect(profiles.rows).toHaveLength(1);
     await expectSqlError(
       insertExpense(k.t, stranger, k.groupId, 'Взлом', 100, stranger, { kind: 'equal', memberIds: [stranger] }),
@@ -126,7 +126,7 @@ describe('Row Level Security (ТЗ, раздел 3.1)', () => {
     await k.t.asUser(k.borya);
     expect((await k.t.db.query(`select * from public.expenses`)).rows).toHaveLength(4);
     expect((await k.t.db.query(`select * from public.members`)).rows).toHaveLength(4);
-    expect((await k.t.db.query(`select * from public.profiles`)).rows).toHaveLength(4);
+    expect((await k.t.db.query(`select id, name from public.profiles`)).rows).toHaveLength(4);
   });
 
   it('нельзя добавить расход от чужого имени', async () => {
@@ -223,7 +223,7 @@ describe('расчёт долей и балансов в SQL совпадает 
     await t.asUser(a);
     const groupId = (await t.db.query<{ id: string }>(`select id from public.groups`)).rows[0]?.id;
     const direct = await t.db.query<{ member_id: string; share_kop: string | number }>(
-      `select * from public.expense_shares($1, 100000, $2::jsonb)`,
+      `select * from private.expense_shares($1, 100000, $2::jsonb)`,
       [groupId, JSON.stringify({ kind: 'equal', memberIds: [c, b, a] })],
     );
     expect(Object.fromEntries(direct.rows.map((row) => [row.member_id, Number(row.share_kop)]))).toEqual({ [a]: 33_334, [b]: 33_333, [c]: 33_333 });
@@ -369,5 +369,163 @@ describe('RPC: приглашения, выход, «Мои группы»', () 
   it('RPC без входа отвечают 401', async () => {
     await k.t.asUser('');
     await expectSqlError(k.t.db.query(`select * from public.my_groups()`), 'PT401', 'not_authenticated');
+  });
+});
+
+describe('исправления по AI-ревью схемы (миграция 5)', () => {
+  let k: Kazan;
+  beforeEach(async () => {
+    k = await seedKazan(await createTestDb());
+  });
+
+  /** Вика рассчитывается с Аней и выходит из группы. */
+  async function vikaLeaves(): Promise<void> {
+    await k.t.asUser(k.vika);
+    await k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 319753)`, [k.groupId, k.vika, k.anya]);
+    await k.t.db.query(`select public.leave_group($1)`, [k.groupId]);
+  }
+
+  it('1: расход, где вышедший — только плательщик, изменить и удалить нельзя (Q5, Q11)', async () => {
+    // Аня вносит подарок, за который платила Вика; сама Вика в делении не участвует.
+    await insertExpense(k.t, k.anya, k.groupId, 'Подарок', 2_000, k.vika, { kind: 'equal', memberIds: [k.anya, k.borya] });
+    await k.t.asUser(k.vika);
+    await k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 317753)`, [k.groupId, k.vika, k.anya]);
+    await k.t.db.query(`select public.leave_group($1)`, [k.groupId]);
+    await k.t.asUser(k.anya);
+    expect((await k.t.db.query(`update public.expenses set amount_kop = 1 where title = 'Подарок'`)).affectedRows).toBe(0);
+    expect((await k.t.db.query(`delete from public.expenses where title = 'Подарок'`)).affectedRows).toBe(0);
+  });
+
+  it('4: перевод с вышедшим участником удалить нельзя', async () => {
+    await vikaLeaves();
+    await k.t.asAdmin();
+    await k.t.db.query(`update public.transfers set created_by = $1`, [k.anya]);
+    await k.t.asUser(k.anya);
+    expect((await k.t.db.query(`delete from public.transfers`)).affectedRows).toBe(0);
+  });
+
+  it('вышедшего нельзя указать в новом расходе или переводе', async () => {
+    await vikaLeaves();
+    await expectSqlError(
+      insertExpense(k.t, k.anya, k.groupId, 'Ужин', 300, k.anya, { kind: 'equal', memberIds: [k.anya, k.vika] }),
+      '23514',
+      'inactive_member',
+    );
+    await k.t.asUser(k.anya);
+    await expectSqlError(
+      k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 100)`, [k.groupId, k.anya, k.vika]),
+      '23514',
+      'inactive_member',
+    );
+  });
+
+  it('5: email других участников не читается', async () => {
+    await k.t.asUser(k.borya);
+    await expectSqlError(k.t.db.query(`select email from public.profiles`), '42501');
+    expect((await k.t.db.query(`select id, name from public.profiles`)).rows).toHaveLength(4);
+  });
+
+  it('6: при вставке нельзя подменить created_at и id', async () => {
+    await k.t.asUser(k.borya);
+    await expectSqlError(
+      k.t.db.query(`insert into public.expenses (group_id, title, amount_kop, payer_id, split, created_at) values ($1, 'x', 100, $2, $3, '2000-01-01')`, [
+        k.groupId,
+        k.borya,
+        JSON.stringify({ kind: 'equal', memberIds: [k.borya] }),
+      ]),
+      '42501',
+    );
+    await expectSqlError(
+      k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop, created_at) values ($1, $2, $3, 1, '2000-01-01')`, [k.groupId, k.borya, k.anya]),
+      '42501',
+    );
+  });
+
+  it.each([
+    ['вес — дробное число', { kind: 'shares', shares: [{ memberId: 'A', weight: 1.5 }] }],
+    ['id — не uuid', { kind: 'equal', memberIds: ['не-uuid'] }],
+  ])('8: неверный split (%s) — понятная ошибка 23514', async (_label, split) => {
+    const json = JSON.parse(JSON.stringify(split).replaceAll('"A"', `"${k.anya}"`)) as object;
+    await expectSqlError(insertExpense(k.t, k.anya, k.groupId, 'Тест', 100, k.anya, json), '23514', 'invalid_split');
+  });
+
+  it('8: split без массива участников отклоняет CHECK', async () => {
+    await expectSqlError(insertExpense(k.t, k.anya, k.groupId, 'Тест', 100, k.anya, { kind: 'equal', memberIds: 'all' }), '23514');
+  });
+
+  it('9: служебные функции убраны из схемы public (не видны в REST API)', async () => {
+    await k.t.asAdmin();
+    const rows = await k.t.db.query<{ name: string }>(
+      `select p.proname as name from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' order by 1`,
+    );
+    expect(rows.rows.map((row) => row.name)).toEqual([
+      'create_group',
+      'get_invite_preview',
+      'group_balances',
+      'handle_new_user',
+      'join_group',
+      'leave_group',
+      'lock_group_on_delete',
+      'my_groups',
+      'rotate_invite',
+      'validate_expense',
+      'validate_transfer',
+    ]);
+  });
+
+  it('12: дата расхода — в разумных пределах', async () => {
+    await k.t.asUser(k.anya);
+    await expectSqlError(
+      k.t.db.query(`insert into public.expenses (group_id, title, amount_kop, payer_id, split, date) values ($1, 'Старое', 100, $2, $3, '1999-12-31')`, [
+        k.groupId,
+        k.anya,
+        JSON.stringify({ kind: 'equal', memberIds: [k.anya] }),
+      ]),
+      '23514',
+      'invalid_date',
+    );
+  });
+
+  it('16: выход не-участника — 403, сброс ссылки бывшим владельцем — 403, скрытая группа не принимает', async () => {
+    const stranger = await k.t.createUser('Чужой');
+    await k.t.asUser(stranger);
+    await expectSqlError(k.t.db.query(`select public.leave_group($1)`, [k.groupId]), 'PT403');
+
+    const t = await createTestDb();
+    const a = await t.createUser('А');
+    await t.asUser(a);
+    const group = (await t.db.query<{ id: string; invite_token: string }>(`select id, invite_token from public.create_group('Одна')`)).rows[0];
+    await t.db.query(`select public.leave_group($1)`, [group?.id]);
+    await expectSqlError(t.db.query(`select public.rotate_invite($1)`, [group?.id]), 'PT403');
+    await expectSqlError(t.db.query(`select public.join_group($1)`, [group?.invite_token]), 'PT404', 'invalid_invite');
+    expect((await t.db.query(`select * from public.my_groups()`)).rows).toHaveLength(0);
+  });
+
+  it('16: балансы SQL и TypeScript совпадают и с переводами, и с вышедшим участником', async () => {
+    await vikaLeaves();
+    await k.t.asUser(k.borya);
+    await k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 50000)`, [k.groupId, k.borya, k.anya]);
+    await k.t.asAdmin();
+    const members = (
+      await k.t.db.query<{ user_id: string; joined_at: Date; left_at: Date | null }>(
+        `select user_id, joined_at, left_at from public.members where group_id = $1 order by joined_at, user_id`,
+        [k.groupId],
+      )
+    ).rows.map((row) => ({ id: row.user_id, name: row.user_id, joinedAt: row.joined_at.toISOString(), leftAt: row.left_at?.toISOString() ?? null }));
+    const expenses = (
+      await k.t.db.query<{ id: string; amount_kop: string | number; payer_id: string; split: ExpenseSplit }>(
+        `select id, amount_kop, payer_id, split from public.expenses where group_id = $1`,
+        [k.groupId],
+      )
+    ).rows.map((row) => ({ id: row.id, groupId: k.groupId, title: '', amountKop: Number(row.amount_kop), payerId: row.payer_id, split: row.split, date: '', createdBy: row.payer_id, createdAt: '' }));
+    const transfers = (
+      await k.t.db.query<{ id: string; from_id: string; to_id: string; amount_kop: string | number }>(
+        `select id, from_id, to_id, amount_kop from public.transfers where group_id = $1`,
+        [k.groupId],
+      )
+    ).rows.map((row) => ({ id: row.id, groupId: k.groupId, fromId: row.from_id, toId: row.to_id, amountKop: Number(row.amount_kop), createdBy: row.from_id, createdAt: '' }));
+    const ts = Object.fromEntries(calculateBalances({ members, expenses, transfers }).map((item) => [item.memberId, item.balanceKop]));
+    expect(await balances(k.t, k.borya, k.groupId)).toEqual(ts);
+    expect(ts[k.vika]).toBe(0);
   });
 });
