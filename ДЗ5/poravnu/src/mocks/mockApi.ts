@@ -1,13 +1,14 @@
 import { calculateBalances } from '../features/balances/calculateBalances';
 import { getSplitMemberIds } from '../features/balances/getExpenseShares';
 import { MAX_AMOUNT_KOP } from '../lib/money';
-import { ApiError, type ApiErrorKind, type ExpenseInput, type TransferInput } from '../types/api';
+import { ApiError, type ApiErrorKind, type ExpenseInput, type InvitePreview, type TransferInput } from '../types/api';
 import type { Expense, Group, GroupDetails, GroupSummary, MemberId, Transfer } from '../types/group';
-import { CURRENT_USER_ID } from '../app/session';
+import { mockUserId, mockUserName } from './mockAuth';
 import { createSeed, type MockDb } from './seed';
 
 /**
- * Mock-API вместо Supabase (до ДЗ5). Повторяет поведение будущего бэкенда:
+ * Mock-API: тот же контракт DataApi, что у Supabase. Используется в автотестах и в демо без бэкенда
+ * (когда не заданы VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY). Повторяет поведение бэкенда:
  * задержку сети, коды ошибок и проверки прав из матрицы RLS (ТЗ, раздел 3.1).
  */
 
@@ -23,6 +24,7 @@ interface MockControl {
 
 const STORAGE_KEY = 'poravnu:db:v1';
 const DEFAULT_LATENCY_MS = 450;
+const MAX_MEMBERS = 50;
 
 const control: MockControl = { latencyMs: DEFAULT_LATENCY_MS, failNext: null, failUntilKind: null, failUntil: 0 };
 let db: MockDb = loadDb();
@@ -50,10 +52,10 @@ export function resetMockDb(next: MockDb = createSeed()): void {
 export async function listGroups(): Promise<GroupSummary[]> {
   await respond();
   return db.groups
-    .filter((group) => isActiveMember(group, CURRENT_USER_ID))
+    .filter((group) => isActiveMember(group, mockUserId()))
     .map((group) => {
       const details = collectDetails(group);
-      const myBalance = calculateBalances(details).find((balance) => balance.memberId === CURRENT_USER_ID);
+      const myBalance = calculateBalances(details).find((balance) => balance.memberId === mockUserId());
       return {
         id: group.id,
         name: group.name,
@@ -84,10 +86,10 @@ export async function createGroup(input: { name: string; emoji: string }): Promi
     id: nextId('g'),
     name,
     emoji: input.emoji,
-    ownerId: CURRENT_USER_ID,
+    ownerId: mockUserId(),
     inviteToken: nextId('inv'),
     createdAt: now,
-    members: [{ id: CURRENT_USER_ID, name: 'Боря', joinedAt: now, leftAt: null }],
+    members: [{ id: mockUserId(), name: mockUserName(), joinedAt: now, leftAt: null }],
   };
   db.groups.push(group);
   saveDb();
@@ -104,7 +106,7 @@ export async function addExpense(groupId: string, input: ExpenseInput): Promise<
     groupId,
     ...structuredClone(input),
     title: input.title.trim(),
-    createdBy: CURRENT_USER_ID,
+    createdBy: mockUserId(),
     createdAt: new Date().toISOString(),
   };
   db.expenses.push(expense);
@@ -136,7 +138,7 @@ export async function deleteExpense(groupId: string, expenseId: string): Promise
 export async function addTransfer(groupId: string, input: TransferInput): Promise<Transfer> {
   await respond();
   const group = requireMemberGroup(groupId);
-  if (input.fromId !== CURRENT_USER_ID && input.toId !== CURRENT_USER_ID) {
+  if (input.fromId !== mockUserId() && input.toId !== mockUserId()) {
     throw new ApiError('forbidden', 'Отметить перевод могут только его участники');
   }
   if (input.fromId === input.toId || !isActiveMember(group, input.fromId) || !isActiveMember(group, input.toId)) {
@@ -149,7 +151,7 @@ export async function addTransfer(groupId: string, input: TransferInput): Promis
     id: nextId('t'),
     groupId,
     ...input,
-    createdBy: CURRENT_USER_ID,
+    createdBy: mockUserId(),
     createdAt: new Date().toISOString(),
   };
   db.transfers.push(transfer);
@@ -165,7 +167,7 @@ export async function deleteTransfer(groupId: string, transferId: string): Promi
   if (transfer === undefined) {
     throw new ApiError('conflict', 'Перевод уже удалён');
   }
-  if (transfer.createdBy !== CURRENT_USER_ID) {
+  if (transfer.createdBy !== mockUserId()) {
     throw new ApiError('forbidden', 'Удалить перевод может только его автор');
   }
   db.transfers = db.transfers.filter((item) => item.id !== transferId);
@@ -176,17 +178,17 @@ export async function deleteTransfer(groupId: string, transferId: string): Promi
 export async function leaveGroup(groupId: string): Promise<void> {
   await respond();
   const group = requireMemberGroup(groupId);
-  const balance = calculateBalances(collectDetails(group)).find((item) => item.memberId === CURRENT_USER_ID);
+  const balance = calculateBalances(collectDetails(group)).find((item) => item.memberId === mockUserId());
   const balanceKop = balance?.balanceKop ?? 0;
   if (balanceKop !== 0) {
     throw new ApiError('balance-not-zero', 'Сначала рассчитайтесь', balanceKop);
   }
-  const me = group.members.find((member) => member.id === CURRENT_USER_ID);
+  const me = group.members.find((member) => member.id === mockUserId());
   if (me !== undefined) {
     me.leftAt = new Date().toISOString();
   }
   // Владелец передаёт группу участнику, вступившему раньше всех (Q4).
-  if (group.ownerId === CURRENT_USER_ID) {
+  if (group.ownerId === mockUserId()) {
     const heir = group.members.find((member) => member.leftAt === null);
     if (heir !== undefined) {
       group.ownerId = heir.id;
@@ -200,6 +202,39 @@ export async function getInviteLink(groupId: string): Promise<string> {
   await respond();
   const group = requireMemberGroup(groupId);
   return `${window.location.origin}/join/${group.inviteToken}`;
+}
+
+/** Превью приглашения (FR-2.3). */
+export async function getInvitePreview(token: string): Promise<InvitePreview> {
+  await respond();
+  const group = db.groups.find((item) => item.inviteToken === token);
+  if (group === undefined) {
+    throw new ApiError('invalid-invite', 'Приглашение недействительно. Попросите новую ссылку');
+  }
+  return { groupName: group.name, emoji: group.emoji, membersCount: group.members.filter((member) => member.leftAt === null).length };
+}
+
+/** Вступление по ссылке; вышедший участник возвращается (Q5), лимит — 50 (Q9). */
+export async function joinGroup(token: string): Promise<string> {
+  await respond();
+  const group = db.groups.find((item) => item.inviteToken === token);
+  if (group === undefined) {
+    throw new ApiError('invalid-invite', 'Приглашение недействительно. Попросите новую ссылку');
+  }
+  const me = group.members.find((member) => member.id === mockUserId());
+  if (me !== undefined && me.leftAt === null) {
+    return group.id;
+  }
+  if (group.members.filter((member) => member.leftAt === null).length >= MAX_MEMBERS) {
+    throw new ApiError('group-full', 'В группе уже 50 участников');
+  }
+  if (me === undefined) {
+    group.members.push({ id: mockUserId(), name: mockUserName(), joinedAt: new Date().toISOString(), leftAt: null });
+  } else {
+    me.leftAt = null;
+  }
+  saveDb();
+  return group.id;
 }
 
 async function respond(): Promise<void> {
@@ -227,7 +262,7 @@ function requireMemberGroup(groupId: string): Group {
   if (group === undefined) {
     throw new ApiError('not-found', 'Группа не найдена');
   }
-  if (!isActiveMember(group, CURRENT_USER_ID)) {
+  if (!isActiveMember(group, mockUserId())) {
     throw new ApiError('forbidden', 'Нет доступа к группе');
   }
   return group;
@@ -238,7 +273,7 @@ function requireEditableExpense(group: Group, expenseId: string): Expense {
   if (expense === undefined) {
     throw new ApiError('conflict', 'Этот расход уже удалён');
   }
-  if (expense.createdBy !== CURRENT_USER_ID) {
+  if (expense.createdBy !== mockUserId()) {
     throw new ApiError('forbidden', 'Изменять можно только свои расходы');
   }
   const hasLeftMember = getSplitMemberIds(expense.split).some((id) => !isActiveMember(group, id));

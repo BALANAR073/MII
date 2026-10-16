@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
 import { apiErrorMessage } from '../../lib/apiErrorMessage';
-import { addExpense } from '../../mocks/mockApi';
+import { addExpense } from '../../api';
 import { type ExpenseInput } from '../../types/api';
 import type { Expense, MemberId } from '../../types/group';
 

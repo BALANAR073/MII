@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation } from '../../app/useMutation';
 import { useToast } from '../../components/ui/Toast';
 import { apiErrorMessage } from '../../lib/apiErrorMessage';
-import { getInviteLink, leaveGroup } from '../../mocks/mockApi';
+import { getInviteLink, leaveGroup } from '../../api';
 import type { Group } from '../../types/group';
 
 /**

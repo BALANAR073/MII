@@ -5,7 +5,7 @@ import { Dialog } from '../../components/ui/Dialog';
 import { useToast } from '../../components/ui/Toast';
 import { apiErrorMessage } from '../../lib/apiErrorMessage';
 import { formatRub, kopToInput, parseRubToKop } from '../../lib/money';
-import { addTransfer } from '../../mocks/mockApi';
+import { addTransfer } from '../../api';
 import type { Member } from '../../types/group';
 import type { SuggestedTransfer } from '../balances/types';
 import { memberName } from '../expenses/describeExpense';

@@ -1,5 +1,5 @@
 import { useResource } from '../../app/useResource';
-import { getGroup, listGroups } from '../../mocks/mockApi';
+import { getGroup, listGroups } from '../../api';
 
 /**
  * Список групп текущего пользователя (FR-2.1).

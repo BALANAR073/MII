@@ -37,6 +37,14 @@ export function apiErrorMessage(error: unknown, context: ErrorContext): string {
       return describeLeaveBlock(error.amountKop ?? 0);
     case 'server':
       return 'Что-то пошло не так. Мы уже разбираемся';
+    case 'invalid-invite':
+      return 'Приглашение недействительно. Попросите новую ссылку';
+    case 'group-full':
+      return 'В группе уже 50 участников';
+    case 'auth-invalid-credentials':
+      return 'Неверный email или пароль';
+    case 'auth-email-taken':
+      return 'Этот email уже зарегистрирован';
   }
 }
 

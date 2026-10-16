@@ -7,21 +7,6 @@ const BACK_LINK = (
   </Link>
 );
 
-/** Заглушка `/join/:token`: вступление по ссылке требует входа, он появится с Supabase в ДЗ5 (FR-2.3). */
-export function JoinPage() {
-  return (
-    <div className="mx-auto max-w-xl px-4 py-10">
-      <StatusMessage
-        tone="empty"
-        icon="🔗"
-        title="Приглашение в группу"
-        description="Вступление по ссылке заработает после подключения входа и бэкенда (ДЗ5). Сейчас приложение работает на демо-данных."
-        action={BACK_LINK}
-      />
-    </div>
-  );
-}
-
 /** Неизвестный адрес. */
 export function NotFoundPage() {
   return (

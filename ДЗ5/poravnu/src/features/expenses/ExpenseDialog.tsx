@@ -8,9 +8,9 @@ import { useToast } from '../../components/ui/Toast';
 import { apiErrorMessage } from '../../lib/apiErrorMessage';
 import { formatShortDate, todayIso } from '../../lib/dates';
 import { formatRub } from '../../lib/money';
-import { updateExpense } from '../../mocks/mockApi';
+import { updateExpense } from '../../api';
 import { ApiError, type ExpenseInput } from '../../types/api';
-import { CURRENT_USER_ID } from '../../app/session';
+import { useCurrentUser } from '../../app/AuthProvider';
 import { useGroupOutlet } from '../../pages/groupOutlet';
 import type { Expense, Member } from '../../types/group';
 import { getExpenseShares, getSplitMemberIds } from '../balances/getExpenseShares';
@@ -48,13 +48,14 @@ interface NewExpenseProps {
 
 function NewExpense({ onClose }: NewExpenseProps) {
   const { details, createExpense } = useGroupOutlet();
+  const currentUserId = useCurrentUser().id;
   const location = useLocation();
   const activeMembers = details.members.filter((member) => member.leftAt === null);
   const draft = readDraft(location.state);
   const initial =
     draft === null
-      ? emptyExpenseForm(activeMembers, CURRENT_USER_ID, todayIso())
-      : expenseToForm(inputToExpense(draft, details.group.id), activeMembers);
+      ? emptyExpenseForm(activeMembers, currentUserId, todayIso())
+      : expenseToForm(inputToExpense(draft, details.group.id, currentUserId), activeMembers);
 
   return (
     <Dialog title="Новый расход" onClose={onClose} fullScreenOnMobile>
@@ -70,12 +71,13 @@ interface ExistingExpenseProps {
 
 function ExistingExpense({ expense, onClose }: ExistingExpenseProps) {
   const { details, reload, requestDelete } = useGroupOutlet();
+  const currentUserId = useCurrentUser().id;
   const [mode, setMode] = useState<'view' | 'edit' | 'confirm-delete'>('view');
   const { pending, run } = useMutation();
   const { showToast } = useToast();
   const activeMembers = details.members.filter((member) => member.leftAt === null);
   const hasLeftMember = getSplitMemberIds(expense.split).some((id) => !activeMembers.some((member) => member.id === id));
-  const canEdit = expense.createdBy === CURRENT_USER_ID && !hasLeftMember;
+  const canEdit = expense.createdBy === currentUserId && !hasLeftMember;
 
   const save = async (input: ExpenseInput) => {
     try {
@@ -158,12 +160,13 @@ interface ExpenseDetailsProps {
 }
 
 function ExpenseDetails({ expense, members }: ExpenseDetailsProps) {
+  const currentUserId = useCurrentUser().id;
   const shares = getExpenseShares(expense, members);
   return (
     <div>
       <p className="text-3xl font-semibold tabular-nums text-slate-900">{formatRub(expense.amountKop)}</p>
       <p className="mt-1 text-sm text-slate-600">
-        {describeExpense(expense, members, CURRENT_USER_ID)} · {formatShortDate(expense.date)}
+        {describeExpense(expense, members, currentUserId)} · {formatShortDate(expense.date)}
       </p>
       <h3 className="mt-5 text-sm font-semibold text-slate-800">Доли</h3>
       <ul className="mt-2 divide-y divide-slate-100 rounded-xl border border-slate-200">
@@ -171,7 +174,7 @@ function ExpenseDetails({ expense, members }: ExpenseDetailsProps) {
           <li key={share.memberId} className="flex justify-between px-3 py-2 text-sm">
             <span className="text-slate-800">
               {memberName(members, share.memberId)}
-              {share.memberId === CURRENT_USER_ID && <span className="text-slate-500"> (вы)</span>}
+              {share.memberId === currentUserId && <span className="text-slate-500"> (вы)</span>}
             </span>
             <span className="tabular-nums text-slate-900">{formatRub(share.amountKop)}</span>
           </li>
@@ -181,8 +184,8 @@ function ExpenseDetails({ expense, members }: ExpenseDetailsProps) {
   );
 }
 
-function inputToExpense(input: ExpenseInput, groupId: string): Expense {
-  return { id: 'draft', groupId, ...input, createdBy: CURRENT_USER_ID, createdAt: new Date().toISOString() };
+function inputToExpense(input: ExpenseInput, groupId: string, createdBy: string): Expense {
+  return { id: 'draft', groupId, ...input, createdBy, createdAt: new Date().toISOString() };
 }
 
 function readDraft(state: unknown): ExpenseInput | null {

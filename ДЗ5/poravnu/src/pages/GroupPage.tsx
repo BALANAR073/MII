@@ -19,7 +19,7 @@ import { TransferDialog } from '../features/transfers/TransferDialog';
 import { apiErrorMessage } from '../lib/apiErrorMessage';
 import { cx } from '../lib/cx';
 import { ApiError } from '../types/api';
-import { CURRENT_USER_ID } from '../app/session';
+import { useCurrentUser } from '../app/AuthProvider';
 import type { GroupDetails } from '../types/group';
 import type { GroupOutletContext } from './groupOutlet';
 
@@ -63,13 +63,14 @@ interface GroupViewProps {
 
 function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
   const { group } = details;
+  const currentUserId = useCurrentUser().id;
   const [tab, setTab] = useState<GroupTab>('expenses');
   const [transferToMark, setTransferToMark] = useState<SuggestedTransfer | null>(null);
   const [highlightMine, setHighlightMine] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const { inviteFriends, inviting, leaveCurrentGroup, leaving } = useGroupActions(group);
   const { hiddenIds, requestDelete } = useDeferredDelete(group.id, reload);
-  const optimistic = useOptimisticExpenses(group.id, details.expenses, CURRENT_USER_ID, reload);
+  const optimistic = useOptimisticExpenses(group.id, details.expenses, currentUserId, reload);
 
   // Удаляемые расходы скрыты сразу — балансы пересчитываются без них (AC-09.2).
   const visibleExpenses = useMemo(
@@ -100,11 +101,11 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
     );
   }
   const { settlement } = settlementResult;
-  const myBalanceKop = settlement.balances.find((balance) => balance.memberId === CURRENT_USER_ID)?.balanceKop ?? 0;
+  const myBalanceKop = settlement.balances.find((balance) => balance.memberId === currentUserId)?.balanceKop ?? 0;
 
   // «Рассчитаться» (решение Q3): один свой перевод — сразу диалог, несколько — вкладка «Балансы».
   const handleSettle = () => {
-    const mine = settlement.transfers.filter((transfer) => transfer.fromId === CURRENT_USER_ID);
+    const mine = settlement.transfers.filter((transfer) => transfer.fromId === currentUserId);
     const [only] = mine;
     if (mine.length === 1 && only !== undefined) {
       setTransferToMark(only);
@@ -120,7 +121,7 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
         <div className="min-w-0 space-y-4">
           <GroupHeader
             group={group}
-            currentUserId={CURRENT_USER_ID}
+            currentUserId={currentUserId}
             myBalanceKop={myBalanceKop}
             inviting={inviting}
             onSettle={handleSettle}
@@ -163,7 +164,7 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
                 }
               />
             ) : (
-              <ExpenseList expenses={visibleExpenses} members={group.members} currentUserId={CURRENT_USER_ID} pendingIds={optimistic.pendingIds} />
+              <ExpenseList expenses={visibleExpenses} members={group.members} currentUserId={currentUserId} pendingIds={optimistic.pendingIds} />
             )}
           </section>
         </div>
@@ -179,7 +180,7 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
             members={group.members}
             settlement={settlement}
             expensesCount={visibleExpenses.length}
-            currentUserId={CURRENT_USER_ID}
+            currentUserId={currentUserId}
             highlightTransfers={highlightMine}
             onMarkTransfer={setTransferToMark}
           />

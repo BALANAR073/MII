@@ -1,11 +1,15 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { IS_SUPABASE } from './api';
 import { App } from './app/App';
 import { applyDemoMode } from './mocks/demoMode';
 import './index.css';
 
-applyDemoMode(window.location.search);
+// Демо-режимы ?mock=… имеют смысл только без бэкенда.
+if (!IS_SUPABASE) {
+  applyDemoMode(window.location.search);
+}
 
 const container = document.getElementById('root');
 if (container === null) {

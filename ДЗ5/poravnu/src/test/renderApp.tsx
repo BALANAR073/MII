@@ -5,9 +5,14 @@ import { MemoryRouter } from 'react-router-dom';
 import { App } from '../app/App';
 import { ToastProvider } from '../components/ui/Toast';
 import { configureMockApi, resetMockDb } from '../mocks/mockApi';
+import { resetMockAuth } from '../mocks/mockAuth';
+import { setLogSilent } from '../lib/logger';
+import { AuthProvider } from '../app/AuthProvider';
 
 /** Возвращает mock-API в исходное состояние: демо-данные, без задержки и без ошибок. */
 export function resetApi(): void {
+  setLogSilent(true);
+  resetMockAuth('borya');
   resetMockDb();
   configureMockApi({ latencyMs: 0, failNext: null, failUntilKind: null, failUntil: 0 });
 }
@@ -36,7 +41,9 @@ export function renderWithProviders(ui: ReactElement) {
   const user = userEvent.setup();
   const result = render(
     <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <ToastProvider>{ui}</ToastProvider>
+      <AuthProvider>
+        <ToastProvider>{ui}</ToastProvider>
+      </AuthProvider>
     </MemoryRouter>,
   );
   return { user, ...result };

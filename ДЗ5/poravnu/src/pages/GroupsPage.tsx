@@ -8,6 +8,7 @@ import { CreateGroupDialog } from '../features/groups/CreateGroupDialog';
 import { GroupList } from '../features/groups/GroupList';
 import { useGroups } from '../features/groups/useGroups';
 import { apiErrorMessage } from '../lib/apiErrorMessage';
+import { IS_SUPABASE } from '../api';
 import { resetMockDb } from '../mocks/mockApi';
 
 /** Экран «Мои группы» (US-02): список, создание группы, состояния загрузки (NFR-9). */
@@ -47,6 +48,7 @@ export function GroupsPage() {
           <GroupList groups={state.data} />
         ))}
 
+      {!IS_SUPABASE && (
       <p className="mt-8 px-4 text-center text-xs text-slate-500 sm:px-0">
         Демо на mock-данных: всё хранится в этом браузере.{' '}
         <button
@@ -61,6 +63,7 @@ export function GroupsPage() {
           Сбросить демо-данные
         </button>
       </p>
+      )}
 
       {creating && (
         <CreateGroupDialog

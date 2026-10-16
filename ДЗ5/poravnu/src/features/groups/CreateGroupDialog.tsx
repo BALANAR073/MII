@@ -5,7 +5,7 @@ import { Dialog } from '../../components/ui/Dialog';
 import { useToast } from '../../components/ui/Toast';
 import { apiErrorMessage } from '../../lib/apiErrorMessage';
 import { cx } from '../../lib/cx';
-import { createGroup } from '../../mocks/mockApi';
+import { createGroup } from '../../api';
 import { GROUP_EMOJIS } from '../../mocks/seed';
 import type { Group } from '../../types/group';
 import { FOCUS_RING } from '../../components/ui/styles';

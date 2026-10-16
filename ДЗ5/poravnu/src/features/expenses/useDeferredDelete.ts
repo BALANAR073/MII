@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '../../components/ui/Toast';
 import { apiErrorMessage } from '../../lib/apiErrorMessage';
-import { deleteExpense } from '../../mocks/mockApi';
+import { deleteExpense } from '../../api';
 import type { Expense } from '../../types/group';
 
 /** Сколько длится возможность отменить удаление (FR-3.5, AC-09.2). */
