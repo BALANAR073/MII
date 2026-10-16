@@ -44,5 +44,5 @@ $header = @(
 Write-Host ''
 Write-Host "Сохранено: ДЗ3\tz_ai_review.md ($($answer.Length) символов, $([math]::Round($sw.Elapsed.TotalSeconds)) с)"
 Write-Host '--- Итоговая оценка из ответа ---'
-($answer -split "`n") | Select-String -Pattern '/10|из 10|10-балл' | Select-Object -Last 3 | ForEach-Object { Write-Host $_.Line }
+($answer -split "`n") | Select-String -Pattern '\d+\s*/\s*10|из\s+10' | Select-Object -Last 3 | ForEach-Object { Write-Host $_.Line }
 Write-Host '=== ГОТОВО ==='
