@@ -15,7 +15,7 @@ import type { Expense, Member } from '../../types/group';
 import { getExpenseShares, getSplitMemberIds } from '../balances/getExpenseShares';
 import { describeExpense, memberName } from './describeExpense';
 import { ExpenseForm } from './ExpenseForm';
-import { emptyExpenseForm, expenseToForm } from './expenseForm';
+import { emptyExpenseForm, expenseToForm } from './expenseFormModel';
 
 /**
  * Маршруты `expenses/new` и `expenses/:expenseId` (FR-3.2, FR-3.5).

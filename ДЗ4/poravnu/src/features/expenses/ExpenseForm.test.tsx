@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/renderApp';
 import type { Member } from '../../types/group';
 import { ExpenseForm } from './ExpenseForm';
-import { emptyExpenseForm } from './expenseForm';
+import { emptyExpenseForm } from './expenseFormModel';
 
 const MEMBERS: Member[] = [
   { id: 'anya', name: 'Аня', joinedAt: '2026-10-09T18:00:00.000Z', leftAt: null },

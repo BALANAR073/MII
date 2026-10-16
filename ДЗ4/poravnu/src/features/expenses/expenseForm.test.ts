@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Member } from '../../types/group';
-import { FORM_ERRORS, emptyExpenseForm, validateExpenseForm, type ExpenseFormValues } from './expenseForm';
+import { FORM_ERRORS, emptyExpenseForm, validateExpenseForm, type ExpenseFormValues } from './expenseFormModel';
 
 const MEMBERS: Member[] = [
   { id: 'anya', name: 'Аня', joinedAt: '2026-10-09T18:00:00.000Z', leftAt: null },

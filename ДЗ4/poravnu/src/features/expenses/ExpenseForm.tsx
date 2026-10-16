@@ -3,7 +3,7 @@ import { Button } from '../../components/ui/Button';
 import { cx } from '../../lib/cx';
 import type { ExpenseInput } from '../../mocks/mockApi';
 import type { Member } from '../../types/group';
-import { validateExpenseForm, type ExpenseFormErrors, type ExpenseFormField, type ExpenseFormValues, type SplitMode } from './expenseForm';
+import { validateExpenseForm, type ExpenseFormErrors, type ExpenseFormField, type ExpenseFormValues, type SplitMode } from './expenseFormModel';
 import { FOCUS_RING } from '../../components/ui/styles';
 
 interface ExpenseFormProps {
