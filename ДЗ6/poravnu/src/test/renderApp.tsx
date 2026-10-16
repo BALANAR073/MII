@@ -25,7 +25,7 @@ export function resetApi(): void {
 export function renderApp(route: string) {
   const user = userEvent.setup();
   const result = render(
-    <MemoryRouter initialEntries={[route]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={[route]}>
       <App />
     </MemoryRouter>,
   );
@@ -40,7 +40,7 @@ export function renderApp(route: string) {
 export function renderWithProviders(ui: ReactElement) {
   const user = userEvent.setup();
   const result = render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter>
       <AuthProvider>
         <ToastProvider>{ui}</ToastProvider>
       </AuthProvider>
