@@ -1,0 +1,163 @@
+# ДЗ6 · CI/CD «ПоРовну»: проверки на каждый push и pull request, выкладка на Vercel из main.
+# Секрет: VERCEL_TOKEN (Settings → Secrets → Actions). Переменные (Settings → Variables → Actions):
+# VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY — публичные адрес и publishable-ключ Supabase.
+name: ДЗ6 CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths: ['ДЗ6/poravnu/**', '.github/workflows/dz6-ci-cd.yml']
+  pull_request:
+    paths: ['ДЗ6/poravnu/**', '.github/workflows/dz6-ci-cd.yml']
+  workflow_dispatch:
+
+# Новый push в ту же ветку отменяет незаконченную проверку; выкладки не прерываются на середине.
+concurrency:
+  group: dz6-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: ДЗ6/poravnu
+
+env:
+  NODE_VERSION: '22'
+  VERCEL_CLI: vercel@61.1.0
+
+jobs:
+  ci:
+    name: Тесты и сборка
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: ДЗ6/poravnu/package-lock.json
+
+      - name: Установка зависимостей
+        run: npm ci --no-audit --no-fund
+
+      - name: Проверка типов
+        run: npm run typecheck
+
+      - name: Автотесты (фронтенд, API-функции, БД на PGlite)
+        run: npm test
+
+      - name: Аудит зависимостей (production, уровень high и выше)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Сборка
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_YM_COUNTER_ID: ${{ vars.VITE_YM_COUNTER_ID }}
+          VITE_APP_RELEASE: ${{ github.sha }}
+        run: npm run build
+
+      - name: Размер сборки в отчёт
+        run: |
+          {
+            echo '### Сборка'
+            echo '| Файл | Размер | gzip |'
+            echo '|---|---:|---:|'
+            for f in dist/assets/*.js dist/assets/*.css; do
+              echo "| $(basename "$f") | $(( $(stat -c%s "$f") / 1024 )) КБ | $(( $(gzip -c "$f" | wc -c) / 1024 )) КБ |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Выкладка на Vercel
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+      VITE_YM_COUNTER_ID: ${{ vars.VITE_YM_COUNTER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Проверка секрета
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::Нет секрета VERCEL_TOKEN (Settings → Secrets and variables → Actions)"; exit 1
+          fi
+
+      - name: Vercel CLI
+        run: npm install --global ${{ env.VERCEL_CLI }}
+
+      # Копия вне git-репозитория: иначе `vercel link` подключит репозиторий MII к Vercel целиком,
+      # и Vercel начнёт сам собирать каждый push из корня, где проекта нет.
+      - name: Копия проекта для выкладки
+        run: cp -r . "$RUNNER_TEMP/poravnu"
+
+      - name: Привязка к проекту (создаётся при первом запуске)
+        working-directory: ${{ runner.temp }}/poravnu
+        run: vercel link --yes --project poravnu --token "$VERCEL_TOKEN" || vercel link --yes --token "$VERCEL_TOKEN"
+
+      - name: Настройки проекта
+        working-directory: ${{ runner.temp }}/poravnu
+        run: vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+
+      - name: Сборка для Vercel
+        working-directory: ${{ runner.temp }}/poravnu
+        env:
+          VITE_APP_RELEASE: ${{ github.sha }}
+        run: vercel build --prod --token "$VERCEL_TOKEN"
+
+      - name: Выкладка
+        working-directory: ${{ runner.temp }}/poravnu
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" \
+            -e VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
+            -e VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" \
+            -e APP_COMMIT="$GITHUB_SHA")
+          host=${url#https://}
+          # Адрес конкретной выкладки закрыт защитой Vercel; проверяем основной адрес проекта (alias).
+          prod=$(curl -fsS -H "Authorization: Bearer $VERCEL_TOKEN" "https://api.vercel.com/v13/deployments/$host" \
+            | jq -r '[.alias[]? | select(endswith(".vercel.app"))] | sort_by(length) | .[0] // empty')
+          echo "deployment=$url" >> "$GITHUB_OUTPUT"
+          echo "url=https://${prod:-$host}" >> "$GITHUB_OUTPUT"
+          echo "Выложено: https://${prod:-$host}"
+
+      - name: Smoke-тест выложенной версии
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5; do
+            code=$(curl -s -o health.json -w '%{http_code}' "$URL/api/health") || code=000
+            [ "$code" = 200 ] && break
+            echo "health: HTTP $code, повтор через 10 с"; sleep 10
+          done
+          cat health.json; echo
+          test "$code" = 200
+          test "$(jq -r .status health.json)" = ok
+          test "$(jq -r .commit health.json)" = "${GITHUB_SHA::7}"
+          curl -fsS -o /dev/null -D headers.txt "$URL/"
+          grep -qi '^content-security-policy:' headers.txt
+          grep -qi '^strict-transport-security:' headers.txt
+          curl -fsS -o /dev/null "$URL/groups/any-id"   # SPA-маршрут отдаёт index.html, а не 404
+          {
+            echo '### Выкладка'
+            echo "- Адрес: $URL"
+            echo "- Коммит: \`${GITHUB_SHA::7}\`"
+            echo "- Health: \`$(jq -c '{status, auth: .checks.auth.latencyMs, db: .checks.database.latencyMs}' health.json)\`"
+          } >> "$GITHUB_STEP_SUMMARY"

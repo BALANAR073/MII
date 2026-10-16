@@ -1,0 +1,145 @@
+import { useId, useState, type FormEvent } from 'react';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../app/AuthProvider';
+import { Button } from '../components/ui/Button';
+import { apiErrorMessage } from '../lib/apiErrorMessage';
+import { cx } from '../lib/cx';
+
+interface AuthPageProps {
+  mode: 'login' | 'register';
+}
+
+type Field = 'name' | 'email' | 'password';
+type Errors = Partial<Record<Field, string>>;
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Вход и регистрация (US-01, FR-1.1). После успеха — возврат на адрес из `next` (AC-T1.3).
+ * Ошибка входа не раскрывает, что именно неверно (FR-1.3).
+ */
+export function AuthPage({ mode }: AuthPageProps) {
+  const { state, signIn, signUp } = useAuth();
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const next = safeNext(params.get('next'));
+  const [values, setValues] = useState({ name: '', email: '', password: '' });
+  const [errors, setErrors] = useState<Errors>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const id = useId();
+  const isRegister = mode === 'register';
+
+  if (state.status === 'ready' && state.user !== null && !pending) {
+    return <Navigate to={next} replace />;
+  }
+
+  const validate = (): Errors => {
+    const result: Errors = {};
+    if (isRegister) {
+      const name = values.name.trim();
+      if (name.length < 1 || name.length > 40) {
+        result.name = 'Имя — от 1 до 40 символов';
+      }
+    }
+    if (!EMAIL_PATTERN.test(values.email.trim())) {
+      result.email = 'Введите email, например anya@mail.ru';
+    }
+    if (values.password.length < 8) {
+      result.password = 'Пароль — не короче 8 символов';
+    }
+    return result;
+  };
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    const found = validate();
+    setErrors(found);
+    setFormError(null);
+    const first = (['name', 'email', 'password'] as const).find((field) => found[field] !== undefined);
+    if (first !== undefined) {
+      document.getElementById(`${id}-${first}`)?.focus();
+      return;
+    }
+    setPending(true);
+    try {
+      if (isRegister) {
+        await signUp(values.email, values.password, values.name);
+      } else {
+        await signIn(values.email, values.password);
+      }
+      navigate(next, { replace: true });
+    } catch (error) {
+      setFormError(apiErrorMessage(error, 'save'));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const field = (name: Field, label: string, type: string, autoComplete: string) => (
+    <div>
+      <label htmlFor={`${id}-${name}`} className="mb-1 block text-sm font-medium text-slate-800">
+        {label}
+      </label>
+      <input
+        id={`${id}-${name}`}
+        type={type}
+        autoComplete={autoComplete}
+        value={values[name]}
+        aria-invalid={errors[name] !== undefined}
+        aria-describedby={errors[name] === undefined ? undefined : `${id}-${name}-error`}
+        className={cx(
+          'block min-h-11 w-full rounded-xl border bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-emerald-700',
+          errors[name] === undefined ? 'border-slate-300' : 'border-rose-500',
+        )}
+        onChange={(event) => setValues((current) => ({ ...current, [name]: event.target.value }))}
+      />
+      {errors[name] !== undefined && (
+        <p id={`${id}-${name}-error`} className="mt-1 text-sm text-rose-700">
+          {errors[name]}
+        </p>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="mx-auto max-w-sm px-4 py-10">
+      <h1 className="text-2xl font-semibold text-slate-900">{isRegister ? 'Регистрация' : 'Вход'}</h1>
+      <p className="mt-1 text-sm text-slate-600">
+        {isRegister ? 'Создайте аккаунт, чтобы делить расходы с друзьями.' : 'Войдите, чтобы увидеть свои группы.'}
+      </p>
+      {params.get('reason') === 'expired' && (
+        <p role="status" className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Сессия истекла, войдите снова
+        </p>
+      )}
+      <form noValidate onSubmit={(event) => void handleSubmit(event)} className="mt-6 space-y-4">
+        {isRegister && field('name', 'Имя', 'text', 'name')}
+        {field('email', 'Email', 'email', 'email')}
+        {field('password', 'Пароль', 'password', isRegister ? 'new-password' : 'current-password')}
+        {formError !== null && (
+          <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            {formError}
+          </p>
+        )}
+        <Button type="submit" pending={pending} className="w-full">
+          {isRegister ? 'Создать аккаунт' : 'Войти'}
+        </Button>
+      </form>
+      <p className="mt-6 text-center text-sm text-slate-600">
+        {isRegister ? 'Уже есть аккаунт? ' : 'Нет аккаунта? '}
+        <Link
+          to={`${isRegister ? '/login' : '/register'}${next === '/' ? '' : `?next=${encodeURIComponent(next)}`}`}
+          className="font-semibold text-emerald-800 underline"
+        >
+          {isRegister ? 'Войти' : 'Зарегистрироваться'}
+        </Link>
+      </p>
+    </div>
+  );
+}
+
+/** Возврат только на внутренний адрес: `next=https://evil.example` не должен уводить с сайта (open redirect). */
+function safeNext(value: string | null): string {
+  return value !== null && value.startsWith('/') && !value.startsWith('//') ? value : '/';
+}

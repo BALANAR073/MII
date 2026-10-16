@@ -1,0 +1,32 @@
+# ДЗ6 · Плановая проверка доступности: раз в час запрашивает /api/health выложенного сайта.
+# Если сайт или Supabase недоступны, запуск падает и GitHub присылает письмо владельцу репозитория.
+# Дополняет внешний мониторинг UptimeRobot (проверка каждые 5 минут, см. ДЗ6/monitoring.md).
+name: ДЗ6 Uptime
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    name: GET /api/health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: vars.PRODUCTION_URL != ''
+    steps:
+      - name: Проверка
+        env:
+          URL: ${{ vars.PRODUCTION_URL }}
+        run: |
+          code=$(curl -s -o health.json -w '%{http_code} %{time_total}' --max-time 20 "$URL/api/health") || true
+          echo "Ответ: $code"; cat health.json || true; echo
+          {
+            echo "### $(date -u +'%Y-%m-%d %H:%M') UTC"
+            echo "- HTTP и время: \`$code\`"
+            echo "- Тело: \`$(jq -c '{status, commit, auth: .checks.auth, db: .checks.database}' health.json 2>/dev/null || echo 'нет')\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          test "${code%% *}" = 200
