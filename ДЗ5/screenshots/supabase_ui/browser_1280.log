@@ -1,0 +1,83 @@
+--- открыть защищённый адрес без входа
+console.debug: [vite] connecting...
+console.debug: [vite] connected.
+console.info: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+console.info: {"ts":"2026-10-16T16:51:41.359Z","level":"info","event":"auth.state_changed","authEvent":"INITIAL_SESSION"}
+--- неверный пароль
+HTTP 400 POST /auth/v1/token?grant_type=password
+console.error: Failed to load resource: the server responded with a status of 400 (Bad Request)
+console.warning: {"ts":"2026-10-16T16:51:42.658Z","level":"warn","event":"auth.request_failed","op":"auth.sign_in","status":400,"code":"invalid_credentials","kind":"auth-invalid-credentials"}
+--- вход
+HTTP 200 POST /auth/v1/token?grant_type=password
+console.info: {"ts":"2026-10-16T16:51:43.325Z","level":"info","event":"auth.state_changed","authEvent":"SIGNED_IN"}
+HTTP 200 POST /rest/v1/rpc/my_groups
+HTTP 200 POST /rest/v1/rpc/my_groups
+--- группа
+HTTP 200 POST /rest/v1/rpc/my_groups
+HTTP 200 GET /rest/v1/groups?select=*&id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d
+HTTP 200 GET /rest/v1/expenses?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=date.desc%2Ccreated_at.desc
+HTTP 200 GET /rest/v1/transfers?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=created_at.desc
+HTTP 200 GET /rest/v1/members?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=joined_at.asc%2Cuser_id.asc
+HTTP 200 GET /rest/v1/members?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=joined_at.asc%2Cuser_id.asc
+HTTP 200 POST /rest/v1/rpc/my_groups
+HTTP 200 GET /rest/v1/transfers?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=created_at.desc
+HTTP 200 GET /rest/v1/expenses?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=date.desc%2Ccreated_at.desc
+HTTP 200 GET /rest/v1/groups?select=*&id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d
+HTTP 200 GET /rest/v1/profiles?select=id%2Cname&id=in.%288b95164c-e892-4d1b-9b5e-069e87400231%2C3618e0ef-e7de-4c05-84ed-af5a425b7e37%2C4ee2d303-b9ca-4082-9635-ecf8c65858dd%2C4b286b04-145c-493c-84d3-c2e83ae1bbf7%29
+HTTP 200 GET /rest/v1/profiles?select=id%2Cname&id=in.%288b95164c-e892-4d1b-9b5e-069e87400231%2C3618e0ef-e7de-4c05-84ed-af5a425b7e37%2C4ee2d303-b9ca-4082-9635-ecf8c65858dd%2C4b286b04-145c-493c-84d3-c2e83ae1bbf7%29
+--- добавить расход
+console.debug: [vite] connecting...
+console.debug: [vite] connected.
+console.info: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+console.info: {"ts":"2026-10-16T16:51:47.205Z","level":"info","event":"auth.state_changed","authEvent":"INITIAL_SESSION"}
+HTTP 200 GET /rest/v1/members?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=joined_at.asc%2Cuser_id.asc
+HTTP 200 GET /rest/v1/transfers?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=created_at.desc
+HTTP 200 GET /rest/v1/expenses?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=date.desc%2Ccreated_at.desc
+HTTP 200 GET /rest/v1/members?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=joined_at.asc%2Cuser_id.asc
+HTTP 200 GET /rest/v1/groups?select=*&id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d
+HTTP 200 POST /rest/v1/rpc/my_groups
+HTTP 200 GET /rest/v1/transfers?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=created_at.desc
+HTTP 200 POST /rest/v1/rpc/my_groups
+HTTP 200 GET /rest/v1/groups?select=*&id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d
+HTTP 200 GET /rest/v1/expenses?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=date.desc%2Ccreated_at.desc
+HTTP 200 GET /rest/v1/profiles?select=id%2Cname&id=in.%288b95164c-e892-4d1b-9b5e-069e87400231%2C3618e0ef-e7de-4c05-84ed-af5a425b7e37%2C4ee2d303-b9ca-4082-9635-ecf8c65858dd%2C4b286b04-145c-493c-84d3-c2e83ae1bbf7%29
+HTTP 200 GET /rest/v1/profiles?select=id%2Cname&id=in.%288b95164c-e892-4d1b-9b5e-069e87400231%2C3618e0ef-e7de-4c05-84ed-af5a425b7e37%2C4ee2d303-b9ca-4082-9635-ecf8c65858dd%2C4b286b04-145c-493c-84d3-c2e83ae1bbf7%29
+HTTP 201 POST /rest/v1/expenses?select=*
+HTTP 200 GET /rest/v1/groups?select=*&id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d
+HTTP 200 GET /rest/v1/expenses?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=date.desc%2Ccreated_at.desc
+HTTP 200 GET /rest/v1/transfers?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=created_at.desc
+HTTP 200 GET /rest/v1/members?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=joined_at.asc%2Cuser_id.asc
+HTTP 200 GET /rest/v1/profiles?select=id%2Cname&id=in.%288b95164c-e892-4d1b-9b5e-069e87400231%2C3618e0ef-e7de-4c05-84ed-af5a425b7e37%2C4ee2d303-b9ca-4082-9635-ecf8c65858dd%2C4b286b04-145c-493c-84d3-c2e83ae1bbf7%29
+--- удалить его (с отменой окна в 5 с)
+HTTP 200 DELETE /rest/v1/expenses?id=eq.5ae9a502-ebbf-422d-9d98-0d933ecad36f&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&select=id
+HTTP 200 GET /rest/v1/groups?select=*&id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d
+HTTP 200 GET /rest/v1/members?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=joined_at.asc%2Cuser_id.asc
+HTTP 200 GET /rest/v1/expenses?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=date.desc%2Ccreated_at.desc
+HTTP 200 GET /rest/v1/transfers?select=*&group_id=eq.a33e48eb-b2ef-40ac-9e76-11609767dd5d&order=created_at.desc
+HTTP 200 GET /rest/v1/profiles?select=id%2Cname&id=in.%288b95164c-e892-4d1b-9b5e-069e87400231%2C3618e0ef-e7de-4c05-84ed-af5a425b7e37%2C4ee2d303-b9ca-4082-9635-ecf8c65858dd%2C4b286b04-145c-493c-84d3-c2e83ae1bbf7%29
+--- чужой адрес группы
+console.debug: [vite] connecting...
+console.debug: [vite] connected.
+console.info: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+console.info: {"ts":"2026-10-16T16:51:57.362Z","level":"info","event":"auth.state_changed","authEvent":"INITIAL_SESSION"}
+HTTP 200 GET /rest/v1/members?select=*&group_id=eq.00000000-0000-4000-8000-000000000000&order=joined_at.asc%2Cuser_id.asc
+HTTP 200 GET /rest/v1/groups?select=*&id=eq.00000000-0000-4000-8000-000000000000
+HTTP 200 POST /rest/v1/rpc/my_groups
+HTTP 200 POST /rest/v1/rpc/my_groups
+HTTP 200 GET /rest/v1/members?select=*&group_id=eq.00000000-0000-4000-8000-000000000000&order=joined_at.asc%2Cuser_id.asc
+HTTP 200 GET /rest/v1/expenses?select=*&group_id=eq.00000000-0000-4000-8000-000000000000&order=date.desc%2Ccreated_at.desc
+HTTP 200 GET /rest/v1/transfers?select=*&group_id=eq.00000000-0000-4000-8000-000000000000&order=created_at.desc
+console.warning: {"ts":"2026-10-16T16:51:58.198Z","level":"warn","event":"api.request_failed","op":"group.get","status":404,"code":null,"kind":"not-found","message":"Группа не найдена или недоступна"}
+HTTP 200 GET /rest/v1/transfers?select=*&group_id=eq.00000000-0000-4000-8000-000000000000&order=created_at.desc
+HTTP 200 GET /rest/v1/expenses?select=*&group_id=eq.00000000-0000-4000-8000-000000000000&order=date.desc%2Ccreated_at.desc
+HTTP 200 GET /rest/v1/groups?select=*&id=eq.00000000-0000-4000-8000-000000000000
+console.warning: {"ts":"2026-10-16T16:51:58.278Z","level":"warn","event":"api.request_failed","op":"group.get","status":404,"code":null,"kind":"not-found","message":"Группа не найдена или недоступна"}
+--- выход
+console.debug: [vite] connecting...
+console.debug: [vite] connected.
+console.info: %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+console.info: {"ts":"2026-10-16T16:51:59.575Z","level":"info","event":"auth.state_changed","authEvent":"INITIAL_SESSION"}
+HTTP 200 POST /rest/v1/rpc/my_groups
+HTTP 200 POST /rest/v1/rpc/my_groups
+HTTP 204 POST /auth/v1/logout?scope=global
+console.info: {"ts":"2026-10-16T16:52:00.771Z","level":"info","event":"auth.state_changed","authEvent":"SIGNED_OUT"}

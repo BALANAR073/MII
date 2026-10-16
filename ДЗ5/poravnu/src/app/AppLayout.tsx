@@ -39,9 +39,11 @@ export function AppLayout() {
             ПоРовну
           </Link>
           <nav aria-label="Профиль" className="flex items-center gap-2 text-sm text-slate-700">
-            <NavLink to="/" end className="hidden rounded-xl px-3 py-2 hover:bg-slate-100 sm:inline">
-              Группы
-            </NavLink>
+            {signedIn && (
+              <NavLink to="/" end className="hidden rounded-xl px-3 py-2 hover:bg-slate-100 sm:inline">
+                Группы
+              </NavLink>
+            )}
             <UserMenu />
           </nav>
         </div>

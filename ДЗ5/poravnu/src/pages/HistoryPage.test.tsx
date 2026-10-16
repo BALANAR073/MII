@@ -11,7 +11,7 @@ describe('Экран «История операций» (US-10, AC-T9.1)', () =
 
   it('показывает скелетон, затем расходы и переводы от новых к старым (AC-10.1)', async () => {
     renderApp('/groups/flat/history');
-    expect(screen.getByText('Загружаем историю…')).toBeInTheDocument();
+    expect(await screen.findByText('Загружаем историю…')).toBeInTheDocument();
 
     const list = await screen.findByRole('list', { name: 'Операции' });
     const titles = within(list)

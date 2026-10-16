@@ -12,7 +12,7 @@ describe('Экран «Группа»', () => {
 
   it('показывает скелетон, затем свой долг и три перевода Ане (AC-07.1, FR-4.5)', async () => {
     renderApp('/groups/kazan');
-    expect(screen.getByText('Загружаем группу…')).toBeInTheDocument();
+    expect(await screen.findByText('Загружаем группу…')).toBeInTheDocument();
 
     expect(await screen.findByRole('heading', { name: /Поездка в Казань/ })).toBeInTheDocument();
     expect(screen.getAllByText('940,75 ₽').length).toBeGreaterThan(0);

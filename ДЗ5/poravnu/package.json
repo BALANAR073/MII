@@ -2,7 +2,7 @@
   "name": "poravnu",
   "private": true,
   "version": "0.1.0",
-  "description": "ПоРовну — делим общие расходы без споров и калькулятора (ДЗ4, фронтенд на mock-данных)",
+  "description": "ПоРовну — делим общие расходы без споров и калькулятора (ДЗ5: фронтенд + Supabase)",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "test:e2e": "node scripts/e2e-supabase.mjs",
+    "seed:demo": "node scripts/e2e-supabase.mjs --seed-demo"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
