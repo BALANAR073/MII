@@ -148,7 +148,7 @@ Supabase отвечает на preflight `Access-Control-Allow-Origin: *`. Ог�
 | Подбор пароля к БД | длинный случайный пароль; приложению прямое подключение не нужно | логи Postgres, `logs_analysis.md` |
 | Утечка ключей | в git только `.env.example`; `service_role` не используется | `git grep` |
 
-**Security Advisor** (12 предупреждений до миграции 5): 4 касались служебных функций — убраны переносом в `private`. Оставшиеся «Signed-in users can execute SECURITY DEFINER» относятся к RPC, которые и должны вызываться клиентом. Каждая такая функция сама проверяет `auth.uid()` и участие. «Leaked Password Protection» доступна только на платном тарифе.
+**Security Advisor**: до миграции 5 было 12 предупреждений, после — 9. Три касались служебных функций (`is_active_member`, `shares_group`, `expense_has_left_member`) и убраны переносом в `private`. Оставшиеся «Signed-in users can execute SECURITY DEFINER» относятся к RPC, которые и должны вызываться клиентом. Каждая такая функция сама проверяет `auth.uid()` и участие. «Leaked Password Protection» доступна только на платном тарифе.
 
 ## 5. Как работал AI-агент
 
