@@ -1,18 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { lazy, useEffect, useRef } from 'react';
 import { Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from '../components/ui/Toast';
-import { ExpenseDialog } from '../features/expenses/ExpenseDialog';
 import { trackPageView } from '../lib/metrika';
-import { GroupPage } from '../pages/GroupPage';
 import { GroupsPage } from '../pages/GroupsPage';
-import { HistoryPage } from '../pages/HistoryPage';
-import { AuthCallbackPage } from '../pages/AuthCallbackPage';
 import { AuthPage } from '../pages/AuthPage';
-import { JoinPage } from '../pages/JoinPage';
 import { NotFoundPage } from '../pages/SimplePages';
 import { AppLayout } from './AppLayout';
 import { AuthProvider } from './AuthProvider';
 import { RequireAuth } from './RequireAuth';
+
+// Экраны, которые нужны не на первом показе, грузятся отдельными файлами (ДЗ6, оптимизация):
+// стартовый бандл — вход и «Мои группы».
+const GroupPage = lazy(() => import('../pages/GroupPage').then((m) => ({ default: m.GroupPage })));
+const HistoryPage = lazy(() => import('../pages/HistoryPage').then((m) => ({ default: m.HistoryPage })));
+const JoinPage = lazy(() => import('../pages/JoinPage').then((m) => ({ default: m.JoinPage })));
+const AuthCallbackPage = lazy(() => import('../pages/AuthCallbackPage').then((m) => ({ default: m.AuthCallbackPage })));
+const ExpenseDialog = lazy(() => import('../features/expenses/ExpenseDialog').then((m) => ({ default: m.ExpenseDialog })));
 
 /**
  * Маршруты приложения (ТЗ, раздел 1). Форма расхода — вложенный маршрут экрана группы,

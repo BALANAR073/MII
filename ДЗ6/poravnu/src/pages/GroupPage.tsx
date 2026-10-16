@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { Link, Outlet, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Dialog } from '../components/ui/Dialog';
@@ -239,7 +239,10 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
         </Dialog>
       )}
 
-      <Outlet context={outletContext} />
+      {/* Форма расхода — отдельный файл; пока он грузится, лента группы остаётся на экране. */}
+      <Suspense fallback={null}>
+        <Outlet context={outletContext} />
+      </Suspense>
     </div>
   );
 }

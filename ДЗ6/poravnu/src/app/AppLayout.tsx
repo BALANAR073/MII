@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Link, NavLink, Outlet, useMatch } from 'react-router-dom';
 import { Avatar } from '../components/ui/Avatar';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -52,7 +53,10 @@ export function AppLayout() {
       <div className="mx-auto max-w-7xl sm:px-4 lg:flex lg:gap-6 lg:py-6">
         {inGroup && isWide && signedIn && <GroupsSidebar />}
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none sm:py-4 lg:py-0">
-          <Outlet />
+          {/* Экраны грузятся отдельными файлами: пока файл едет, шапка остаётся на месте. */}
+          <Suspense fallback={<p role="status" className="px-4 py-10 text-center text-slate-500">Загрузка…</p>}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
