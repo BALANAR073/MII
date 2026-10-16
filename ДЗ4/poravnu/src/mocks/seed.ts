@@ -1,8 +1,5 @@
 import type { Expense, Group, Transfer } from '../types/group';
 
-/** Текущий пользователь до подключения входа через Supabase (ДЗ5). */
-export const CURRENT_USER_ID = 'borya';
-
 export interface MockDb {
   groups: Group[];
   expenses: Expense[];

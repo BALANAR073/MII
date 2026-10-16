@@ -5,9 +5,10 @@ import { StatusMessage } from '../components/ui/StatusMessage';
 import { memberName } from '../features/expenses/describeExpense';
 import { useGroup } from '../features/groups/useGroups';
 import { apiErrorMessage } from '../lib/apiErrorMessage';
-import { formatShortDate } from '../lib/dates';
+import { formatShortDate, todayIso } from '../lib/dates';
 import { formatRub } from '../lib/money';
 import type { GroupDetails, Member } from '../types/group';
+import type { Kopecks } from '../types/money';
 
 interface HistoryItem {
   id: string;
@@ -17,7 +18,7 @@ interface HistoryItem {
   createdAt: string;
   title: string;
   subtitle: string;
-  amountKop: number;
+  amountKop: Kopecks;
 }
 
 /** История операций группы (US-10, FR-5.2): расходы и переводы одной лентой. */
@@ -85,7 +86,8 @@ function buildHistory(details: GroupDetails): HistoryItem[] {
   const transfers: HistoryItem[] = details.transfers.map((transfer) => ({
     id: transfer.id,
     kind: 'transfer',
-    date: transfer.createdAt.slice(0, 10),
+    // Местная дата, а не UTC: перевод в 01:00 по Москве не должен уехать во вчерашний день (находка 16).
+    date: todayIso(new Date(transfer.createdAt)),
     createdAt: transfer.createdAt,
     title: `${name(transfer.fromId)} → ${name(transfer.toId)}`,
     subtitle: `Перевод · отметил(а): ${name(transfer.createdBy)}`,

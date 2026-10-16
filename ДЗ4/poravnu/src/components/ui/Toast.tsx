@@ -40,7 +40,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
     const id = nextId.current;
     nextId.current += 1;
     setToasts((current) => [
-      ...current.slice(-2),
+      // Тосты с действием («Отменить») не вытесняются новыми уведомлениями (находка 9 AI-ревью).
+      ...current.filter((toast, index) => toast.action !== undefined || index >= current.length - 2),
       {
         id,
         message: options.message,
@@ -88,14 +89,29 @@ interface ToastViewProps {
 }
 
 function ToastView({ toast, onDismiss }: ToastViewProps) {
+  // Пока на тост навели мышь или в нём фокус, таймер стоит (WCAG 2.2.1, находка 9 AI-ревью).
+  const [paused, setPaused] = useState(false);
+  const remainingRef = useRef(toast.durationMs);
+
   useEffect(() => {
-    const timer = window.setTimeout(() => onDismiss(toast.id), toast.durationMs);
-    return () => window.clearTimeout(timer);
-  }, [toast.id, toast.durationMs, onDismiss]);
+    if (paused) {
+      return undefined;
+    }
+    const startedAt = Date.now();
+    const timer = window.setTimeout(() => onDismiss(toast.id), remainingRef.current);
+    return () => {
+      window.clearTimeout(timer);
+      remainingRef.current = Math.max(0, remainingRef.current - (Date.now() - startedAt));
+    };
+  }, [paused, toast.id, onDismiss]);
 
   return (
+    // Роль не ставим: сообщения объявляет общий aria-live контейнера, иначе скринридер читает их дважды (находка 15).
     <div
-      role={toast.tone === 'error' ? 'alert' : 'status'}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
       className={cx(
         'pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-xl px-4 py-3 text-sm shadow-lg',
         toast.tone === 'error' ? 'bg-rose-700 text-white' : 'bg-slate-900 text-white',

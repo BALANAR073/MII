@@ -45,7 +45,13 @@ export function Dialog({ title, onClose, children, fullScreenOnMobile = false, f
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.classList.remove('overflow-hidden');
-      previouslyFocused?.focus();
+      // Если элемент, с которого открыли окно, уже исчез (расход удалён, режим окна сменился),
+      // ставим фокус на основное содержимое, а не теряем его на body (находка 8 AI-ревью).
+      if (previouslyFocused?.isConnected === true) {
+        previouslyFocused.focus();
+      } else {
+        document.getElementById('main')?.focus();
+      }
     };
   }, []);
 

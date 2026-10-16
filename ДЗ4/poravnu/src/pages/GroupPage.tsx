@@ -18,15 +18,15 @@ import { useGroup } from '../features/groups/useGroups';
 import { TransferDialog } from '../features/transfers/TransferDialog';
 import { apiErrorMessage } from '../lib/apiErrorMessage';
 import { cx } from '../lib/cx';
-import { ApiError } from '../mocks/mockApi';
-import { CURRENT_USER_ID } from '../mocks/seed';
+import { ApiError } from '../types/api';
+import { CURRENT_USER_ID } from '../app/session';
 import type { GroupDetails } from '../types/group';
 import type { GroupOutletContext } from './groupOutlet';
 
 /** Экран «Группа» (US-04, 06, 07, 08): загрузка, ошибки и данные группы. */
 export function GroupPage() {
   const { groupId = '' } = useParams();
-  const { state, reload } = useGroup(groupId);
+  const { state, refreshFailed, reload } = useGroup(groupId);
 
   if (state.status === 'loading') {
     return <GroupPageSkeleton />;
@@ -52,15 +52,16 @@ export function GroupPage() {
       </div>
     );
   }
-  return <GroupView key={groupId} details={state.data} reload={reload} />;
+  return <GroupView key={groupId} details={state.data} reload={reload} refreshFailed={refreshFailed} />;
 }
 
 interface GroupViewProps {
   details: GroupDetails;
   reload: () => void;
+  refreshFailed: boolean;
 }
 
-function GroupView({ details, reload }: GroupViewProps) {
+function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
   const { group } = details;
   const [tab, setTab] = useState<GroupTab>('expenses');
   const [transferToMark, setTransferToMark] = useState<SuggestedTransfer | null>(null);
@@ -79,15 +80,27 @@ function GroupView({ details, reload }: GroupViewProps) {
     () => ({ members: details.members, expenses: visibleExpenses, transfers: details.transfers }),
     [details.members, details.transfers, visibleExpenses],
   );
-  const settlement = useSettlement(ledger);
-  const myBalanceKop = settlement.balances.find((balance) => balance.memberId === CURRENT_USER_ID)?.balanceKop ?? 0;
+  const settlementResult = useSettlement(ledger);
 
-  const outletContext: GroupOutletContext = {
-    details: { ...details, expenses: visibleExpenses },
-    createExpense: optimistic.createExpense,
-    reload,
-    requestDelete,
-  };
+  const outletContext = useMemo<GroupOutletContext>(
+    () => ({ details: { ...details, expenses: visibleExpenses }, createExpense: optimistic.createExpense, reload, requestDelete }),
+    [details, visibleExpenses, optimistic.createExpense, reload, requestDelete],
+  );
+
+  if (!settlementResult.ok) {
+    return (
+      <div className="px-4 py-6">
+        <StatusMessage
+          tone="error"
+          title="Не удалось посчитать балансы"
+          description="Что-то пошло не так. Мы уже разбираемся"
+          action={<Button onClick={reload}>Повторить</Button>}
+        />
+      </div>
+    );
+  }
+  const { settlement } = settlementResult;
+  const myBalanceKop = settlement.balances.find((balance) => balance.memberId === CURRENT_USER_ID)?.balanceKop ?? 0;
 
   // «Рассчитаться» (решение Q3): один свой перевод — сразу диалог, несколько — вкладка «Балансы».
   const handleSettle = () => {
@@ -114,6 +127,14 @@ function GroupView({ details, reload }: GroupViewProps) {
             onInvite={() => void inviteFriends()}
             onLeave={() => setConfirmLeave(true)}
           />
+          {refreshFailed && (
+            <div role="status" className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-2 text-sm text-amber-900">
+              Не удалось обновить данные — показана последняя версия.
+              <Button variant="ghost" onClick={reload}>
+                Обновить
+              </Button>
+            </div>
+          )}
           <GroupTabs value={tab} onChange={setTab} />
           <section
             id="panel-expenses"
@@ -147,7 +168,8 @@ function GroupView({ details, reload }: GroupViewProps) {
           </section>
         </div>
 
-        <aside
+        {/* div, а не aside: у aside нельзя переопределить роль на tabpanel — нарушение нашёл axe-core (баг 11). */}
+        <div
           id="panel-balances"
           role="tabpanel"
           aria-labelledby="tab-balances"
@@ -161,7 +183,7 @@ function GroupView({ details, reload }: GroupViewProps) {
             highlightTransfers={highlightMine}
             onMarkTransfer={setTransferToMark}
           />
-        </aside>
+        </div>
       </div>
 
       <Link

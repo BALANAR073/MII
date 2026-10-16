@@ -1,10 +1,11 @@
 import { useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Button } from '../../components/ui/Button';
 import { cx } from '../../lib/cx';
-import type { ExpenseInput } from '../../mocks/mockApi';
+import type { ExpenseInput } from '../../types/api';
 import type { Member } from '../../types/group';
 import { validateExpenseForm, type ExpenseFormErrors, type ExpenseFormField, type ExpenseFormValues, type SplitMode } from './expenseFormModel';
 import { FOCUS_RING } from '../../components/ui/styles';
+import { handleRovingKeyDown } from '../../components/ui/roving';
 
 interface ExpenseFormProps {
   initialValues: ExpenseFormValues;
@@ -16,6 +17,7 @@ interface ExpenseFormProps {
 }
 
 const FIELD_ORDER: readonly ExpenseFormField[] = ['title', 'amount', 'members', 'weights', 'date'];
+const SPLIT_MODES: readonly SplitMode[] = ['equal', 'shares'];
 
 /**
  * Форма расхода (FR-3.2–3.4). Проверка — при потере фокуса и при отправке;
@@ -125,20 +127,22 @@ export function ExpenseForm({ initialValues, activeMembers, submitLabel, pending
         </Field>
       </div>
 
-      <fieldset aria-describedby={describedBy('members') ?? describedBy('weights')}>
+      <fieldset aria-describedby={[describedBy('members'), describedBy('weights')].filter(Boolean).join(' ') || undefined}>
         <legend className="mb-2 text-sm font-medium text-slate-800">Как делим</legend>
         <div role="radiogroup" aria-label="Способ деления" className="mb-3 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
-          {(['equal', 'shares'] as const satisfies readonly SplitMode[]).map((mode) => (
+          {SPLIT_MODES.map((mode) => (
             <button
               key={mode}
               type="button"
               role="radio"
               aria-checked={values.mode === mode}
+              tabIndex={values.mode === mode ? 0 : -1}
               className={cx(
                 'min-h-11 rounded-lg text-sm font-medium transition', FOCUS_RING,
                 values.mode === mode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600',
               )}
               onClick={() => update({ mode })}
+              onKeyDown={(event) => handleRovingKeyDown(event, SPLIT_MODES, values.mode, (next) => update({ mode: next }))}
             >
               {mode === 'equal' ? 'Поровну' : 'По долям'}
             </button>
@@ -164,6 +168,8 @@ export function ExpenseForm({ initialValues, activeMembers, submitLabel, pending
                 {values.mode === 'shares' && (
                   <input
                     aria-label={`Доля: ${member.name}`}
+                    aria-invalid={checked && errorFor('weights') !== undefined}
+                    aria-describedby={checked ? describedBy('weights') : undefined}
                     data-field={index === 0 ? 'weights' : undefined}
                     className={inputClass(checked ? errorFor('weights') : undefined, 'w-20 text-center tabular-nums')}
                     inputMode="numeric"

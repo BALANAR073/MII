@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
 import { apiErrorMessage } from '../../lib/apiErrorMessage';
-import { addExpense, type ExpenseInput } from '../../mocks/mockApi';
+import { addExpense } from '../../mocks/mockApi';
+import { type ExpenseInput } from '../../types/api';
 import type { Expense, MemberId } from '../../types/group';
 
 interface OptimisticItem {
@@ -36,12 +37,17 @@ export function useOptimisticExpenses(
 ): OptimisticExpenses {
   const [items, setItems] = useState<OptimisticItem[]>([]);
   const navigate = useNavigate();
+  const location = useLocation();
+  // Текущий адрес в ref: ответ сервера приходит позже, и пользователь мог уже уйти с экрана.
+  const pathnameRef = useRef(location.pathname);
+  pathnameRef.current = location.pathname;
   const { showToast } = useToast();
 
   // Подтверждённые расходы убираем из локального списка, когда они пришли с сервера.
   useEffect(() => {
     const serverIds = new Set(serverExpenses.map((expense) => expense.id));
-    setItems((current) => current.filter((item) => !serverIds.has(item.expense.id)));
+    // Тот же массив, если убирать нечего, — без лишней перерисовки (находка 23).
+    setItems((current) => (current.some((item) => serverIds.has(item.expense.id)) ? current.filter((item) => !serverIds.has(item.expense.id)) : current));
   }, [serverExpenses]);
 
   const expenses = useMemo(() => {
@@ -53,8 +59,8 @@ export function useOptimisticExpenses(
   const pendingIds = useMemo(() => new Set(items.filter((item) => !item.saved).map((item) => item.expense.id)), [items]);
 
   const createExpense = useCallback(
-    (input: ExpenseInput) => {
-      const tempId = `tmp-${Date.now().toString(36)}`;
+    function create(input: ExpenseInput): void {
+      const tempId = `tmp-${randomId()}`;
       const temp: Expense = { id: tempId, groupId, ...input, createdBy: currentUserId, createdAt: new Date().toISOString() };
       setItems((current) => [...current, { expense: temp, saved: false }]);
       navigate(`/groups/${groupId}`);
@@ -66,14 +72,27 @@ export function useOptimisticExpenses(
         })
         .catch((error: unknown) => {
           setItems((current) => current.filter((item) => item.expense.id !== tempId));
-          navigate(`/groups/${groupId}/expenses/new`, { state: { draft: input } });
-          showToast({ message: apiErrorMessage(error, 'save'), tone: 'error' });
+          // Форму с черновиком открываем, только если пользователь всё ещё в этой группе (находка 5).
+          if (pathnameRef.current.startsWith(`/groups/${groupId}`)) {
+            navigate(`/groups/${groupId}/expenses/new`, { state: { draft: input } });
+          }
+          showToast({
+            message: apiErrorMessage(error, 'save'),
+            tone: 'error',
+            action: { label: 'Повторить', onClick: () => create(input) },
+          });
         });
     },
     [groupId, currentUserId, navigate, onSaved, showToast],
   );
 
   return { expenses, pendingIds, createExpense };
+}
+
+function randomId(): string {
+  return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
 /** Сортировка ленты по решению Q12: по дате расхода, при равенстве — по времени создания. */

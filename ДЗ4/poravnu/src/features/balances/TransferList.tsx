@@ -4,6 +4,7 @@ import { cx } from '../../lib/cx';
 import { formatRub } from '../../lib/money';
 import type { Member, MemberId } from '../../types/group';
 import type { SuggestedTransfer } from './types';
+import { memberColorIndex } from '../../lib/memberColor';
 
 interface TransferListProps {
   members: readonly Member[];
@@ -25,7 +26,7 @@ export function TransferList({ members, transfers, currentUserId, onMark }: Tran
     );
   }
 
-  const memberIndex = (id: MemberId) => members.findIndex((member) => member.id === id);
+  const memberIndex = (id: MemberId) => memberColorIndex(members, id);
   const memberName = (id: MemberId) => members.find((member) => member.id === id)?.name ?? 'Участник';
 
   return (

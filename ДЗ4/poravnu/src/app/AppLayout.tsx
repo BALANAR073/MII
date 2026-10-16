@@ -47,7 +47,7 @@ export function AppLayout() {
 
       <div className="mx-auto max-w-7xl sm:px-4 lg:flex lg:gap-6 lg:py-6">
         {inGroup && isWide && <GroupsSidebar />}
-        <main id="main" className="min-w-0 flex-1 sm:py-4 lg:py-0">
+        <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none sm:py-4 lg:py-0">
           <Outlet />
         </main>
       </div>

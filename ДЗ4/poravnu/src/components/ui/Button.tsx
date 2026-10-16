@@ -20,16 +20,25 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 };
 
 /** Кнопка с вариантами оформления и состоянием ожидания. */
-export function Button({ variant = 'primary', pending = false, className, children, disabled, type = 'button', ...rest }: ButtonProps) {
+export function Button({ variant = 'primary', pending = false, className, children, disabled, type = 'button', onClick, ...rest }: ButtonProps) {
   return (
     <button
       type={type}
-      disabled={disabled === true || pending}
+      // В ожидании — aria-disabled, а не disabled: нативный disabled снимает фокус с нажатой кнопки (находка 14).
+      disabled={disabled}
+      aria-disabled={pending || undefined}
       aria-busy={pending || undefined}
+      onClick={(event) => {
+        if (pending) {
+          event.preventDefault();
+          return;
+        }
+        onClick?.(event);
+      }}
       className={cx(
         'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition',
         FOCUS_RING,
-        'disabled:cursor-not-allowed',
+        'disabled:cursor-not-allowed aria-disabled:cursor-progress aria-disabled:opacity-80',
         VARIANT_CLASSES[variant],
         className,
       )}

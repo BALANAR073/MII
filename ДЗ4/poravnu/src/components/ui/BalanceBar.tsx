@@ -1,9 +1,10 @@
 import { cx } from '../../lib/cx';
+import type { Kopecks } from '../../types/money';
 
 interface BalanceBarProps {
-  balanceKop: number;
+  balanceKop: Kopecks;
   /** Наибольший по модулю баланс в группе — он займёт всю половину полосы. */
-  maxAbsKop: number;
+  maxAbsKop: Kopecks;
 }
 
 // Классы ширины перечислены целиком: Tailwind находит только классы, явно записанные в коде,

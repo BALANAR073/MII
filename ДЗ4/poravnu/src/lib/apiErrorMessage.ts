@@ -1,13 +1,19 @@
-import { ApiError } from '../mocks/mockApi';
+import { ApiError } from '../types/api';
 import { formatRub } from './money';
 
-export type ErrorContext = 'load' | 'save';
+export type ErrorContext = 'load' | 'save' | 'delete';
+
+const NETWORK_MESSAGES: Record<ErrorContext, string> = {
+  load: 'Не удалось загрузить данные. Проверьте интернет',
+  save: 'Не удалось сохранить. Проверьте интернет',
+  delete: 'Не удалось удалить. Проверьте интернет',
+};
 
 /**
  * Переводит ошибку API в текст для пользователя по разделу 6 ТЗ.
  * Технические детали в интерфейс не попадают (ERR-5).
  * @param error Пойманная ошибка любого типа.
- * @param context Загрузка данных или сохранение — от этого зависит текст сетевой ошибки.
+ * @param context Загрузка, сохранение или удаление — от этого зависит текст сетевой ошибки.
  * @returns Сообщение на русском.
  */
 export function apiErrorMessage(error: unknown, context: ErrorContext): string {
@@ -16,7 +22,7 @@ export function apiErrorMessage(error: unknown, context: ErrorContext): string {
   }
   switch (error.kind) {
     case 'network':
-      return context === 'load' ? 'Не удалось загрузить данные. Проверьте интернет' : 'Не удалось сохранить. Проверьте интернет';
+      return NETWORK_MESSAGES[context];
     case 'unauthorized':
       return 'Сессия истекла, войдите снова';
     case 'forbidden':

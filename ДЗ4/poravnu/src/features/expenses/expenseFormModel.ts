@@ -1,5 +1,5 @@
 import { kopToInput, parseRubToKop } from '../../lib/money';
-import type { ExpenseInput } from '../../mocks/mockApi';
+import type { ExpenseInput } from '../../types/api';
 import type { Expense, Member, MemberId } from '../../types/group';
 import { toWeightedShares } from '../balances/getExpenseShares';
 

@@ -1,5 +1,5 @@
 import { useOutletContext } from 'react-router-dom';
-import type { ExpenseInput } from '../mocks/mockApi';
+import type { ExpenseInput } from '../types/api';
 import type { Expense, GroupDetails } from '../types/group';
 
 /** Что экран группы передаёт вложенным маршрутам (форма расхода). */

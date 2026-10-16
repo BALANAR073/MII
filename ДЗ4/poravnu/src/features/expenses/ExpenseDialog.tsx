@@ -8,8 +8,9 @@ import { useToast } from '../../components/ui/Toast';
 import { apiErrorMessage } from '../../lib/apiErrorMessage';
 import { formatShortDate, todayIso } from '../../lib/dates';
 import { formatRub } from '../../lib/money';
-import { ApiError, updateExpense, type ExpenseInput } from '../../mocks/mockApi';
-import { CURRENT_USER_ID } from '../../mocks/seed';
+import { updateExpense } from '../../mocks/mockApi';
+import { ApiError, type ExpenseInput } from '../../types/api';
+import { CURRENT_USER_ID } from '../../app/session';
 import { useGroupOutlet } from '../../pages/groupOutlet';
 import type { Expense, Member } from '../../types/group';
 import { getExpenseShares, getSplitMemberIds } from '../balances/getExpenseShares';
@@ -98,7 +99,7 @@ function ExistingExpense({ expense, onClose }: ExistingExpenseProps) {
 
   if (mode === 'edit') {
     return (
-      <Dialog title="Изменить расход" onClose={onClose} fullScreenOnMobile>
+      <Dialog key="edit" title="Изменить расход" onClose={onClose} fullScreenOnMobile>
         <ExpenseForm
           initialValues={expenseToForm(expense, activeMembers)}
           activeMembers={activeMembers}
@@ -112,7 +113,8 @@ function ExistingExpense({ expense, onClose }: ExistingExpenseProps) {
   }
 
   return (
-    <Dialog title={expense.title} onClose={onClose}>
+    // key по режиму: окно пересоздаётся и переводит фокус в новый режим (находка 8 AI-ревью).
+    <Dialog key={mode} title={expense.title} onClose={onClose}>
       <ExpenseDetails expense={expense} members={details.members} />
       {mode === 'confirm-delete' ? (
         <div className="mt-5 rounded-xl bg-rose-50 p-4">
@@ -184,12 +186,41 @@ function inputToExpense(input: ExpenseInput, groupId: string): Expense {
 }
 
 function readDraft(state: unknown): ExpenseInput | null {
-  if (typeof state === 'object' && state !== null && 'draft' in state) {
-    const { draft } = state;
-    if (typeof draft === 'object' && draft !== null && 'title' in draft && 'amountKop' in draft && 'split' in draft) {
-      // Черновик мы сами положили в state при откате оптимистичного добавления.
-      return draft as ExpenseInput;
-    }
+  if (typeof state === 'object' && state !== null && 'draft' in state && isExpenseInput(state.draft)) {
+    return state.draft;
   }
   return null;
+}
+
+/** Проверка черновика из history state: он переживает перезагрузку страницы, поэтому типам не верим (находка 22). */
+function isExpenseInput(value: unknown): value is ExpenseInput {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const { title, amountKop, payerId, date, split } = value as Record<string, unknown>;
+  return (
+    typeof title === 'string' &&
+    typeof amountKop === 'number' &&
+    Number.isSafeInteger(amountKop) &&
+    typeof payerId === 'string' &&
+    typeof date === 'string' &&
+    isSplit(split)
+  );
+}
+
+function isSplit(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null || !('kind' in value)) {
+    return false;
+  }
+  if (value.kind === 'equal') {
+    return 'memberIds' in value && Array.isArray(value.memberIds) && value.memberIds.every((id: unknown) => typeof id === 'string');
+  }
+  return (
+    value.kind === 'shares' &&
+    'shares' in value &&
+    Array.isArray(value.shares) &&
+    value.shares.every(
+      (share: unknown) => typeof share === 'object' && share !== null && 'memberId' in share && 'weight' in share && typeof share.weight === 'number',
+    )
+  );
 }

@@ -6,11 +6,15 @@ import { formatRub } from '../../lib/money';
 import type { Group, MemberId } from '../../types/group';
 import { BALANCE_COLOR, getBalanceStatus } from '../balances/balanceText';
 import { FOCUS_RING } from '../../components/ui/styles';
+import { memberColorIndex } from '../../lib/memberColor';
+import type { Kopecks } from '../../types/money';
+
+const MAX_AVATARS = 5;
 
 interface GroupHeaderProps {
   group: Group;
   currentUserId: MemberId;
-  myBalanceKop: number;
+  myBalanceKop: Kopecks;
   inviting?: boolean;
   onSettle: () => void;
   onInvite: () => void;
@@ -37,10 +41,23 @@ export function GroupHeader({ group, currentUserId, myBalanceKop, inviting = fal
         {group.name} <span aria-hidden="true">{group.emoji}</span>
       </h1>
       <div className="mt-3 flex items-center gap-3">
-        <div className="flex -space-x-1.5">
-          {activeMembers.map((member, index) => (
-            <Avatar key={member.id} name={member.name} index={index} size="sm" stacked highlighted={member.id === currentUserId} />
+        {/* Не больше 5 аватаров и «+N»: при 50 участниках строка давала горизонтальную прокрутку (находка 11). */}
+        <div className="flex shrink-0 -space-x-1.5">
+          {activeMembers.slice(0, MAX_AVATARS).map((member) => (
+            <Avatar
+              key={member.id}
+              name={member.name}
+              index={memberColorIndex(group.members, member.id)}
+              size="sm"
+              stacked
+              highlighted={member.id === currentUserId}
+            />
           ))}
+          {activeMembers.length > MAX_AVATARS && (
+            <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-slate-100 px-1.5 text-xs font-semibold text-slate-700 ring-2 ring-white">
+              +{activeMembers.length - MAX_AVATARS}
+            </span>
+          )}
         </div>
         <p className="min-w-0 truncate text-sm text-slate-600">{activeMembers.map((member) => member.name).join(', ')}</p>
       </div>

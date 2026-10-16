@@ -1,51 +1,15 @@
 import { calculateBalances } from '../features/balances/calculateBalances';
 import { getSplitMemberIds } from '../features/balances/getExpenseShares';
 import { MAX_AMOUNT_KOP } from '../lib/money';
-import type { Expense, ExpenseSplit, Group, GroupDetails, GroupSummary, MemberId, Transfer } from '../types/group';
-import type { Kopecks } from '../types/money';
-import { CURRENT_USER_ID, createSeed, type MockDb } from './seed';
+import { ApiError, type ApiErrorKind, type ExpenseInput, type TransferInput } from '../types/api';
+import type { Expense, Group, GroupDetails, GroupSummary, MemberId, Transfer } from '../types/group';
+import { CURRENT_USER_ID } from '../app/session';
+import { createSeed, type MockDb } from './seed';
 
 /**
  * Mock-API вместо Supabase (до ДЗ5). Повторяет поведение будущего бэкенда:
  * задержку сети, коды ошибок и проверки прав из матрицы RLS (ТЗ, раздел 3.1).
  */
-
-export type ApiErrorKind =
-  | 'network'
-  | 'server'
-  | 'unauthorized'
-  | 'forbidden'
-  | 'not-found'
-  | 'conflict'
-  | 'validation'
-  | 'balance-not-zero';
-
-/** Ошибка API с типом — по нему UI выбирает сообщение из раздела 6 ТЗ. */
-export class ApiError extends Error {
-  readonly kind: ApiErrorKind;
-  readonly amountKop: Kopecks | null;
-
-  constructor(kind: ApiErrorKind, message: string, amountKop: Kopecks | null = null) {
-    super(message);
-    this.name = 'ApiError';
-    this.kind = kind;
-    this.amountKop = amountKop;
-  }
-}
-
-export interface ExpenseInput {
-  title: string;
-  amountKop: Kopecks;
-  payerId: MemberId;
-  split: ExpenseSplit;
-  date: string;
-}
-
-export interface TransferInput {
-  fromId: MemberId;
-  toId: MemberId;
-  amountKop: Kopecks;
-}
 
 interface MockControl {
   /** Задержка ответа, мс. */

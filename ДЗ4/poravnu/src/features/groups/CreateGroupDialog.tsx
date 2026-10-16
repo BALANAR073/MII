@@ -9,6 +9,7 @@ import { createGroup } from '../../mocks/mockApi';
 import { GROUP_EMOJIS } from '../../mocks/seed';
 import type { Group } from '../../types/group';
 import { FOCUS_RING } from '../../components/ui/styles';
+import { handleRovingKeyDown } from '../../components/ui/roving';
 
 interface CreateGroupDialogProps {
   onClose: () => void;
@@ -94,12 +95,14 @@ export function CreateGroupDialog({ onClose, onCreated }: CreateGroupDialogProps
                 type="button"
                 role="radio"
                 aria-checked={emoji === item}
+                tabIndex={emoji === item ? 0 : -1}
                 aria-label={`Эмодзи ${item}`}
                 className={cx(
                   'flex aspect-square items-center justify-center rounded-xl text-xl', FOCUS_RING,
                   emoji === item ? 'bg-emerald-100 ring-2 ring-emerald-700' : 'bg-slate-100 hover:bg-slate-200',
                 )}
                 onClick={() => setEmoji(item)}
+                onKeyDown={(event) => handleRovingKeyDown(event, GROUP_EMOJIS, emoji, setEmoji)}
               >
                 {item}
               </button>

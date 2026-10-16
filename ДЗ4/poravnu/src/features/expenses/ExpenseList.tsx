@@ -6,6 +6,8 @@ import type { Expense, Member, MemberId } from '../../types/group';
 import { describeExpense, describeMyShare } from './describeExpense';
 import { FOCUS_RING_INSET } from '../../components/ui/styles';
 
+const NO_PENDING: ReadonlySet<string> = new Set();
+
 interface ExpenseListProps {
   expenses: readonly Expense[];
   members: readonly Member[];
@@ -18,7 +20,7 @@ interface ExpenseListProps {
  * Лента расходов группы (FR-3.1): без карточек, тонкие разделители — концепция 1.
  * Каждая строка — ссылка на просмотр или редактирование расхода.
  */
-export function ExpenseList({ expenses, members, currentUserId, pendingIds = new Set<string>() }: ExpenseListProps) {
+export function ExpenseList({ expenses, members, currentUserId, pendingIds = NO_PENDING }: ExpenseListProps) {
   return (
     <ul className="divide-y divide-slate-100" aria-label="Расходы">
       {expenses.map((expense) => {
@@ -41,7 +43,7 @@ export function ExpenseList({ expenses, members, currentUserId, pendingIds = new
         return (
           <li key={expense.id}>
             {pending ? (
-              <div aria-busy="true" className="flex items-start gap-4 px-4 py-3 opacity-60">
+              <div aria-busy="true" className="flex items-start gap-4 bg-slate-50 px-4 py-3">
                 {content}
               </div>
             ) : (
