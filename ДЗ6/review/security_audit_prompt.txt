@@ -1,0 +1,9 @@
+Role: ты — специалист по безопасности веб-приложений (OWASP Top 10 2021, OWASP ASVS), опыт с React SPA, Vercel, Supabase (Auth, RLS, PostgREST) и CI/CD на GitHub Actions.
+Task: проведи аудит безопасности проекта в папке poravnu и конвейера ../.github/workflows (dz6-ci-cd.yml, dz6-uptime.yml). Проверь по OWASP Top 10: A01 контроль доступа (RLS в supabase/migrations, open redirect в safeNext и маршрутах), A02 криптография и секреты (что попадает в бандл, .env, токены в URL и логах), A03 инъекции и XSS (React, CSP в vercel.json, обработка ввода), A04 небезопасный дизайн (бизнес-правила на сервере), A05 конфигурация (заголовки vercel.json, CORS, настройки Auth), A06 уязвимые зависимости (package.json, package-lock.json), A07 аутентификация (пароли, OAuth PKCE в src/api/supabaseApi.ts, сессии), A08 целостность CI/CD (права GITHUB_TOKEN, версии actions, секреты), A09 логирование (api/log.ts, api/_lib/clientLog.ts, src/lib/logger.ts — нет ли персональных данных), A10 SSRF (api/health.ts). Отдельно — Яндекс.Метрика (src/lib/metrika.ts): что уходит третьей стороне.
+Context: MVP «ПоРовну» для дележа расходов выложен на https://poravnu.vercel.app. Фронтенд обращается к Supabase напрямую с публичным publishable-ключом, вся защита данных — в БД (RLS, права на колонки, security definer). Серверные функции Vercel: /api/health и /api/log. Выкладка — GitHub Actions: тесты → npm audit → vercel build → deploy → smoke-тест. Код писал AI-агент; БД уже прошла AI-ревью в ДЗ5 (16 находок исправлены миграцией 5).
+Format: ответ на русском в Markdown:
+1) таблица находок: № | категория OWASP | файл:строка | проблема | серьёзность (критическая/высокая/средняя/низкая) | как исправить;
+2) что сделано хорошо (до 6 пунктов);
+3) три самых важных исправления;
+4) итоговая оценка безопасности по 10-балльной шкале с коротким обоснованием.
+Файлы не изменяй — только ответ.
