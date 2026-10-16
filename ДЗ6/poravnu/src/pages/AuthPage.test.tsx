@@ -79,7 +79,8 @@ describe('вступление по приглашению (US-03, FR-2.3)', () 
     resetMockAuth('anya');
     const { user } = renderApp('/join/flat-lenina');
     await user.click(await screen.findByRole('button', { name: 'Вступить' }));
-    expect(await screen.findByRole('heading', { name: /Квартира на Ленина/ })).toBeInTheDocument();
+    // Вступление + загрузка группы — два ответа mock-API подряд; под нагрузкой CI это дольше 1 с по умолчанию.
+    expect(await screen.findByRole('heading', { name: /Квартира на Ленина/ }, { timeout: 4000 })).toBeInTheDocument();
   });
 
   it('недействительная ссылка — сообщение и путь к своим группам (AC-03.4)', async () => {

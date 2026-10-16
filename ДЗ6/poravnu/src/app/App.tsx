@@ -1,9 +1,12 @@
-import { Outlet, Route, Routes } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from '../components/ui/Toast';
 import { ExpenseDialog } from '../features/expenses/ExpenseDialog';
+import { trackPageView } from '../lib/metrika';
 import { GroupPage } from '../pages/GroupPage';
 import { GroupsPage } from '../pages/GroupsPage';
 import { HistoryPage } from '../pages/HistoryPage';
+import { AuthCallbackPage } from '../pages/AuthCallbackPage';
 import { AuthPage } from '../pages/AuthPage';
 import { JoinPage } from '../pages/JoinPage';
 import { NotFoundPage } from '../pages/SimplePages';
@@ -16,6 +19,7 @@ import { RequireAuth } from './RequireAuth';
  * поэтому на десктопе она открывается модальным окном поверх ленты.
  */
 export function App() {
+  usePageViews();
   return (
     <AuthProvider>
       <ToastProvider>
@@ -23,6 +27,7 @@ export function App() {
           <Route element={<AppLayout />}>
             <Route path="login" element={<AuthPage mode="login" />} />
             <Route path="register" element={<AuthPage mode="register" />} />
+            <Route path="auth/callback" element={<AuthCallbackPage />} />
             {/* Приглашение открывается и без входа: гость видит превью (FR-1.2, FR-2.3). */}
             <Route path="join/:token" element={<JoinPage />} />
             <Route element={<Protected />}>
@@ -47,4 +52,17 @@ function Protected() {
       <Outlet />
     </RequireAuth>
   );
+}
+
+/** Просмотры страниц для Яндекс.Метрики: в SPA адрес меняется без перезагрузки (ДЗ6). */
+function usePageViews(): void {
+  const location = useLocation();
+  const previous = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const url = location.pathname + location.search;
+    if (previous.current !== undefined && previous.current !== url) {
+      trackPageView(url, previous.current);
+    }
+    previous.current = url;
+  }, [location.pathname, location.search]);
 }

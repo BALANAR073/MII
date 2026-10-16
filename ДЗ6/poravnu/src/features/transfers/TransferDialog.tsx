@@ -1,3 +1,4 @@
+import { trackGoal } from '../../lib/metrika';
 import { useId, useState, type FormEvent } from 'react';
 import { useMutation } from '../../app/useMutation';
 import { Button } from '../../components/ui/Button';
@@ -41,6 +42,7 @@ export function TransferDialog({ groupId, transfer, members, onClose, onDone }: 
     try {
       const saved = await run(() => addTransfer(groupId, { fromId: transfer.fromId, toId: transfer.toId, amountKop: parsed.amountKop }));
       if (saved !== undefined) {
+        trackGoal('transfer_marked');
         showToast({ message: `Перевод ${formatRub(saved.amountKop)} отмечен`, tone: 'success' });
         onDone();
       }

@@ -1,9 +1,12 @@
-import { useId, useState, type FormEvent } from 'react';
+import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../app/AuthProvider';
 import { Button } from '../components/ui/Button';
 import { apiErrorMessage } from '../lib/apiErrorMessage';
 import { cx } from '../lib/cx';
+import { trackGoal } from '../lib/metrika';
+import { safeNext } from '../lib/safeNext';
+import type { OAuthProvider } from '../types/api';
 
 interface AuthPageProps {
   mode: 'login' | 'register';
@@ -13,13 +16,14 @@ type Field = 'name' | 'email' | 'password';
 type Errors = Partial<Record<Field, string>>;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PROVIDER_LABELS: Record<OAuthProvider, string> = { google: 'Google' };
 
 /**
  * Вход и регистрация (US-01, FR-1.1). После успеха — возврат на адрес из `next` (AC-T1.3).
  * Ошибка входа не раскрывает, что именно неверно (FR-1.3).
  */
 export function AuthPage({ mode }: AuthPageProps) {
-  const { state, signIn, signUp } = useAuth();
+  const { state, signIn, signUp, oauthProviders, signInWithOAuth } = useAuth();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const next = safeNext(params.get('next'));
@@ -29,6 +33,20 @@ export function AuthPage({ mode }: AuthPageProps) {
   const [pending, setPending] = useState(false);
   const id = useId();
   const isRegister = mode === 'register';
+  const [providers, setProviders] = useState<OAuthProvider[]>([]);
+  const [redirecting, setRedirecting] = useState<OAuthProvider | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void oauthProviders().then((list) => {
+      if (active) {
+        setProviders(list);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [oauthProviders]);
 
   if (state.status === 'ready' && state.user !== null && !pending) {
     return <Navigate to={next} replace />;
@@ -65,14 +83,28 @@ export function AuthPage({ mode }: AuthPageProps) {
     try {
       if (isRegister) {
         await signUp(values.email, values.password, values.name);
+        trackGoal('sign_up');
       } else {
         await signIn(values.email, values.password);
+        trackGoal('login');
       }
       navigate(next, { replace: true });
     } catch (error) {
       setFormError(apiErrorMessage(error, 'save'));
     } finally {
       setPending(false);
+    }
+  };
+
+  const handleOAuth = async (provider: OAuthProvider) => {
+    setFormError(null);
+    setRedirecting(provider);
+    trackGoal('oauth_start');
+    try {
+      await signInWithOAuth(provider, next);
+    } catch (error) {
+      setFormError(apiErrorMessage(error, 'save'));
+      setRedirecting(null);
     }
   };
 
@@ -126,6 +158,27 @@ export function AuthPage({ mode }: AuthPageProps) {
           {isRegister ? 'Создать аккаунт' : 'Войти'}
         </Button>
       </form>
+      {providers.length > 0 && (
+        <div className="mt-6">
+          <p className="flex items-center gap-3 text-xs uppercase tracking-wide text-slate-500 before:h-px before:flex-1 before:bg-slate-200 after:h-px after:flex-1 after:bg-slate-200">
+            или
+          </p>
+          <div className="mt-4 space-y-3">
+            {providers.map((provider) => (
+              <Button
+                key={provider}
+                type="button"
+                variant="secondary"
+                pending={redirecting === provider}
+                className="w-full"
+                onClick={() => void handleOAuth(provider)}
+              >
+                Войти через {PROVIDER_LABELS[provider]}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
       <p className="mt-6 text-center text-sm text-slate-600">
         {isRegister ? 'Уже есть аккаунт? ' : 'Нет аккаунта? '}
         <Link
@@ -137,9 +190,4 @@ export function AuthPage({ mode }: AuthPageProps) {
       </p>
     </div>
   );
-}
-
-/** Возврат только на внутренний адрес: `next=https://evil.example` не должен уводить с сайта (open redirect). */
-function safeNext(value: string | null): string {
-  return value !== null && value.startsWith('/') && !value.startsWith('//') ? value : '/';
 }

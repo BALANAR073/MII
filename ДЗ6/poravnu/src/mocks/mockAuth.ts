@@ -1,4 +1,4 @@
-import { ApiError, type AuthApi, type AuthUser } from '../types/api';
+import { ApiError, type AuthApi, type AuthUser, type OAuthProvider } from '../types/api';
 
 /**
  * Вход и регистрация для демо без бэкенда и для автотестов — тот же контракт AuthApi, что у Supabase Auth.
@@ -73,7 +73,29 @@ export const mockAuth: AuthApi = {
     setCurrent(null);
     return Promise.resolve();
   },
+  oauthProviders: () => Promise.resolve([...mockProviders]),
+  signInWithOAuth: (provider) => {
+    lastOAuthProvider = provider;
+    return Promise.resolve();
+  },
 };
+
+let mockProviders: OAuthProvider[] = [];
+let lastOAuthProvider: OAuthProvider | null = null;
+
+/**
+ * Включает кнопки внешнего входа в демо и тестах.
+ * @param providers Провайдеры, которые «включены».
+ */
+export function setMockOAuthProviders(providers: OAuthProvider[]): void {
+  mockProviders = providers;
+  lastOAuthProvider = null;
+}
+
+/** Последний провайдер, на который mock «увёл» пользователя (для тестов). */
+export function lastMockOAuthProvider(): OAuthProvider | null {
+  return lastOAuthProvider;
+}
 
 function setCurrent(user: AuthUser | null): void {
   current = user;

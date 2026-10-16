@@ -1,6 +1,6 @@
 import { createClient, type Session, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { log } from '../lib/logger';
-import { ApiError, type AuthApi, type AuthUser, type DataApi, type ExpenseInput } from '../types/api';
+import { ApiError, type AuthApi, type AuthUser, type DataApi, type ExpenseInput, type OAuthProvider } from '../types/api';
 import type { Expense, ExpenseSplit, Group, Member, Transfer } from '../types/group';
 import type { Database, Json } from './database.types';
 import { fromAuthError, fromPostgrestError, type RawSupabaseError } from './supabaseErrors';
@@ -30,9 +30,10 @@ interface QueryResult<T> {
  */
 export function createSupabaseApis(url: string, anonKey: string): { data: DataApi; auth: AuthApi } {
   const client: Client = createClient<Database>(url, anonKey, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    // PKCE: провайдер возвращает одноразовый code, а не токен в адресе — токен не попадёт в историю браузера и логи (ДЗ6).
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' },
   });
-  return { data: createDataApi(client), auth: createAuthApi(client) };
+  return { data: createDataApi(client), auth: createAuthApi(client, url, anonKey) };
 }
 
 function createDataApi(client: Client): DataApi {
@@ -137,7 +138,7 @@ function createDataApi(client: Client): DataApi {
   };
 }
 
-function createAuthApi(client: Client): AuthApi {
+function createAuthApi(client: Client, url: string, anonKey: string): AuthApi {
   return {
     getUser: async () => {
       const { data, error } = await client.auth.getSession();
@@ -182,7 +183,42 @@ function createAuthApi(client: Client): AuthApi {
         throw loggedAuth('auth.sign_out', error);
       }
     },
+    oauthProviders: async () => {
+      // Публичные настройки Auth: какие провайдеры включены в панели Supabase. Сбой — просто без кнопок.
+      try {
+        const response = await fetch(`${url.replace(/\/+$/, '')}/auth/v1/settings`, { headers: { apikey: anonKey } });
+        const settings: unknown = response.ok ? await response.json() : null;
+        return enabledProviders(settings);
+      } catch {
+        return [];
+      }
+    },
+    signInWithOAuth: async (provider, next) => {
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+      log('info', 'auth.oauth_started', { provider });
+      const { error } = await client.auth.signInWithOAuth({ provider, options: { redirectTo } });
+      if (error !== null) {
+        throw loggedAuth('auth.oauth', error);
+      }
+    },
   };
+}
+
+const KNOWN_PROVIDERS: readonly OAuthProvider[] = ['google'];
+
+/**
+ * Провайдеры, включённые в настройках Supabase Auth (`GET /auth/v1/settings` → `external`).
+ * @param settings Ответ сервера.
+ */
+export function enabledProviders(settings: unknown): OAuthProvider[] {
+  if (typeof settings !== 'object' || settings === null || !('external' in settings)) {
+    return [];
+  }
+  const external: unknown = settings.external;
+  if (typeof external !== 'object' || external === null) {
+    return [];
+  }
+  return KNOWN_PROVIDERS.filter((provider) => provider in external && Reflect.get(external, provider) === true);
 }
 
 async function run<T>(op: string, query: PromiseLike<QueryResult<T>>): Promise<NonNullable<T>> {

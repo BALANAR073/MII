@@ -76,6 +76,9 @@ export interface AuthUser {
 }
 
 /** Вход и регистрация (FR-1.1). */
+/** Внешние провайдеры входа (OAuth 2.0 через Supabase Auth, ДЗ6). */
+export type OAuthProvider = 'google';
+
 export interface AuthApi {
   getUser: () => Promise<AuthUser | null>;
   /** Подписка на вход и выход; возвращает функцию отписки. */
@@ -83,4 +86,12 @@ export interface AuthApi {
   signUp: (input: { email: string; password: string; name: string }) => Promise<AuthUser>;
   signIn: (input: { email: string; password: string }) => Promise<AuthUser>;
   signOut: () => Promise<void>;
+  /** Какие внешние провайдеры включены в проекте (показываем только их кнопки). */
+  oauthProviders: () => Promise<OAuthProvider[]>;
+  /**
+   * Уводит браузер на страницу провайдера; после входа он вернётся на `/auth/callback?next=…`.
+   * @param provider Провайдер.
+   * @param next Внутренний адрес, куда вернуть пользователя после входа.
+   */
+  signInWithOAuth: (provider: OAuthProvider, next: string) => Promise<void>;
 }

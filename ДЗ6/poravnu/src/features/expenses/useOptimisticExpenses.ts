@@ -1,3 +1,4 @@
+import { trackGoal } from '../../lib/metrika';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
@@ -67,6 +68,7 @@ export function useOptimisticExpenses(
       addExpense(groupId, input)
         .then((saved) => {
           setItems((current) => current.map((item) => (item.expense.id === tempId ? { expense: saved, saved: true } : item)));
+          trackGoal('expense_added');
           showToast({ message: `Расход «${saved.title}» добавлен`, tone: 'success' });
           onSaved();
         })

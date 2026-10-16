@@ -1,3 +1,4 @@
+import { trackGoal } from '../../lib/metrika';
 import { useId, useState, type FormEvent } from 'react';
 import { useMutation } from '../../app/useMutation';
 import { Button } from '../../components/ui/Button';
@@ -46,6 +47,7 @@ export function CreateGroupDialog({ onClose, onCreated }: CreateGroupDialogProps
     try {
       const group = await run(() => createGroup({ name, emoji }));
       if (group !== undefined) {
+        trackGoal('group_created');
         showToast({ message: `Группа «${group.name}» создана`, tone: 'success' });
         onCreated(group);
       }

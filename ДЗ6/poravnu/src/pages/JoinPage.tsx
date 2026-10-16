@@ -1,3 +1,4 @@
+import { trackGoal } from '../lib/metrika';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getInvitePreview, joinGroup } from '../api';
@@ -56,6 +57,7 @@ export function JoinPage() {
     setJoining(true);
     try {
       const groupId = await joinGroup(token);
+      trackGoal('group_joined');
       showToast({ message: `Вы в группе «${groupName}»`, tone: 'success' });
       navigate(`/groups/${groupId}`, { replace: true });
     } catch (error) {

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { auth } from '../api';
 import { log } from '../lib/logger';
-import type { AuthUser } from '../types/api';
+import type { AuthUser, OAuthProvider } from '../types/api';
 
 type AuthState = { status: 'loading' } | { status: 'ready'; user: AuthUser | null };
 
@@ -10,6 +10,8 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<AuthUser>;
   signUp: (email: string, password: string, name: string) => Promise<AuthUser>;
   signOut: () => Promise<void>;
+  oauthProviders: () => Promise<OAuthProvider[]>;
+  signInWithOAuth: (provider: OAuthProvider, next: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -53,6 +55,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       signIn: (email, password) => auth.signIn({ email, password }),
       signUp: (email, password, name) => auth.signUp({ email, password, name }),
       signOut: () => auth.signOut(),
+      oauthProviders: () => auth.oauthProviders(),
+      signInWithOAuth: (provider, next) => auth.signInWithOAuth(provider, next),
     }),
     [state],
   );
