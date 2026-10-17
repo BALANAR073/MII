@@ -14,6 +14,11 @@ updates:
     labels: [dependencies]
     commit-message:
       prefix: 'ДЗ6 deps'
+    # Мажорные версии (React 19, TypeScript 7, Tailwind 4) ломают сборку — это отдельная миграция, а не плановое
+    # обновление. Правило не касается обновлений безопасности: их Dependabot присылает в любом случае.
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
     groups:
       # Мелкие обновления dev-инструментов — одним PR, чтобы не засыпать репозиторий.
       dev-minor:
