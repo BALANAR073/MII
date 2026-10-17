@@ -9,6 +9,11 @@ export interface Member {
   joinedAt: string;
   /** Дата выхода из группы или `null`, если участник активен (FR-2.4). */
   leftAt: string | null;
+  /**
+   * Участник без аккаунта: добавлен по имени и ещё не занят человеком по ссылке (ДЗ6, миграция 6).
+   * Отсутствие поля означает зарегистрированного участника.
+   */
+  isVirtual?: boolean;
 }
 
 export interface WeightedShare {
@@ -28,6 +33,8 @@ export interface Expense {
   split: ExpenseSplit;
   /** Дата расхода без времени, `YYYY-MM-DD`. */
   date: string;
+  /** Категория из `EXPENSE_CATEGORIES` или `null` — «Другое» (ДЗ6). */
+  category?: string | null;
   createdBy: MemberId;
   createdAt: string;
 }

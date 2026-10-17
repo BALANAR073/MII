@@ -5,6 +5,7 @@ import { formatRub } from '../../lib/money';
 import type { Expense, Member, MemberId } from '../../types/group';
 import { describeExpense, describeMyShare } from './describeExpense';
 import { FOCUS_RING_INSET } from '../../components/ui/styles';
+import { categoryOf } from '../../lib/categories';
 
 const NO_PENDING: ReadonlySet<string> = new Set();
 
@@ -25,8 +26,16 @@ export function ExpenseList({ expenses, members, currentUserId, pendingIds = NO_
     <ul className="divide-y divide-slate-100" aria-label="Расходы">
       {expenses.map((expense) => {
         const pending = pendingIds.has(expense.id);
+        const category = categoryOf(expense.category);
         const content = (
           <>
+            <span
+              aria-hidden="true"
+              title={category.label}
+              className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xl"
+            >
+              {category.emoji}
+            </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-base font-medium text-slate-900">{expense.title}</p>
               <p className="mt-0.5 text-sm text-slate-600">{describeExpense(expense, members, currentUserId)}</p>
@@ -43,13 +52,13 @@ export function ExpenseList({ expenses, members, currentUserId, pendingIds = NO_
         return (
           <li key={expense.id}>
             {pending ? (
-              <div aria-busy="true" className="flex items-start gap-4 bg-slate-50 px-4 py-3">
+              <div aria-busy="true" className="flex items-start gap-3 bg-slate-50 px-4 py-3">
                 {content}
               </div>
             ) : (
               <Link
                 to={`expenses/${expense.id}`}
-                className={cx('flex items-start gap-4 px-4 py-3 transition hover:bg-slate-50', FOCUS_RING_INSET)}
+                className={cx('flex items-start gap-3 px-4 py-3 transition hover:bg-slate-50', FOCUS_RING_INSET)}
               >
                 {content}
               </Link>

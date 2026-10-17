@@ -25,8 +25,15 @@ describe('доступность экранов по axe-core (NFR-2, наход
     expect(results.violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([]);
   });
 
-  it('экран «Мои группы» без нарушений', async () => {
+  it('главная без нарушений (ДЗ6)', async () => {
     const { container } = renderApp('/');
+    await screen.findByRole('list', { name: 'С кем расчёты' });
+    const results = await axe(container, AXE_OPTIONS);
+    expect(results.violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([]);
+  });
+
+  it('экран «Мои группы» без нарушений', async () => {
+    const { container } = renderApp('/groups');
     await screen.findByRole('list', { name: 'Мои группы' });
     const results = await axe(container, AXE_OPTIONS);
     expect(results.violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([]);

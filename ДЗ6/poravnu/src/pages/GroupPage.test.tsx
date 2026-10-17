@@ -11,6 +11,8 @@ describe('Экран «Группа»', () => {
   });
 
   it('показывает скелетон, затем свой долг и три перевода Ане (AC-07.1, FR-4.5)', async () => {
+    // Без задержки ответ mock-API приходил раньше первой проверки, и скелетон исчезал незамеченным.
+    configureMockApi({ latencyMs: 150 });
     renderApp('/groups/kazan');
     expect(await screen.findByText('Загружаем группу…')).toBeInTheDocument();
 

@@ -17,7 +17,14 @@ type GroupRow = {
   hidden_at: string | null;
   created_at: string;
 };
-type MemberRow = { group_id: string; user_id: string; joined_at: string; left_at: string | null };
+type MemberRow = {
+  group_id: string;
+  user_id: string;
+  joined_at: string;
+  left_at: string | null;
+  is_virtual: boolean;
+  display_name: string | null;
+};
 type ExpenseRow = {
   id: string;
   group_id: string;
@@ -112,6 +119,12 @@ export type Database = {
         }[];
       };
       group_balances: { Args: { p_group: string }; Returns: { member_id: string; balance_kop: number }[] };
+      add_member: { Args: { p_group: string; p_name: string }; Returns: string };
+      rename_member: { Args: { p_group: string; p_member: string; p_name: string }; Returns: undefined };
+      remove_member: { Args: { p_group: string; p_member: string }; Returns: undefined };
+      get_invite_members: { Args: { p_token: string }; Returns: { member_id: string; name: string }[] };
+      claim_member: { Args: { p_token: string; p_member: string }; Returns: string };
+      update_group: { Args: { p_group: string; p_name: string; p_emoji: string }; Returns: undefined };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

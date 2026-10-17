@@ -12,6 +12,8 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   oauthProviders: () => Promise<OAuthProvider[]>;
   signInWithOAuth: (provider: OAuthProvider, next: string) => Promise<void>;
+  /** Смена имени в профиле (ДЗ6): новое имя сразу видно в шапке и в группах. */
+  updateName: (name: string) => Promise<AuthUser>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -57,6 +59,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       signOut: () => auth.signOut(),
       oauthProviders: () => auth.oauthProviders(),
       signInWithOAuth: (provider, next) => auth.signInWithOAuth(provider, next),
+      updateName: async (name) => {
+        const user = await auth.updateName(name);
+        setState({ status: 'ready', user });
+        return user;
+      },
     }),
     [state],
   );

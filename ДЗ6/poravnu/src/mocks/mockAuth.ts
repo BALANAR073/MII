@@ -73,6 +73,20 @@ export const mockAuth: AuthApi = {
     setCurrent(null);
     return Promise.resolve();
   },
+  updateName: (name) => {
+    const trimmed = name.trim();
+    if (current === null) {
+      return Promise.reject(new ApiError('unauthorized', 'Сессия истекла, войдите снова'));
+    }
+    if (trimmed.length < 1 || trimmed.length > 40) {
+      return Promise.reject(new ApiError('validation', 'Имя — от 1 до 40 символов'));
+    }
+    const id = current.id;
+    accounts = accounts.map((account) => (account.id === id ? { ...account, name: trimmed } : account));
+    const user = { ...current, name: trimmed };
+    setCurrent(user);
+    return Promise.resolve(user);
+  },
   oauthProviders: () => Promise.resolve([...mockProviders]),
   signInWithOAuth: (provider) => {
     lastOAuthProvider = provider;

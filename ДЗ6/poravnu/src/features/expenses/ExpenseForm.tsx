@@ -12,6 +12,7 @@ import {
 } from './expenseFormModel';
 import { FOCUS_RING } from '../../components/ui/styles';
 import { handleRovingKeyDown } from '../../components/ui/roving';
+import { EXPENSE_CATEGORIES, guessCategory } from '../../lib/categories';
 
 interface ExpenseFormProps {
   initialValues: ExpenseFormValues;
@@ -86,6 +87,12 @@ export function ExpenseForm({ initialValues, activeMembers, submitLabel, pending
           onBlur={() => handleBlur('title')}
         />
       </Field>
+
+      <CategoryPicker
+        value={values.category}
+        guessed={values.category === '' ? guessCategory(values.title) : null}
+        onChange={(category) => update({ category })}
+      />
 
       <Field label="Сумма, ₽" htmlFor={fieldId('amount')} error={errorFor('amount')} errorId={fieldId('amount-error')}>
         <input
@@ -212,6 +219,48 @@ export function ExpenseForm({ initialValues, activeMembers, submitLabel, pending
         </Button>
       </div>
     </form>
+  );
+}
+
+interface CategoryPickerProps {
+  value: string;
+  /** Категория, подобранная по названию, пока пользователь не выбрал свою. */
+  guessed: string | null;
+  onChange: (category: string) => void;
+}
+
+/** Категория расхода (ДЗ6): кнопки-чипы; повторное нажатие снимает выбор — тогда категория подбирается по названию. */
+function CategoryPicker({ value, guessed, onChange }: CategoryPickerProps) {
+  const active = value !== '' ? value : guessed;
+  return (
+    <fieldset>
+      <legend className="mb-2 text-sm font-medium text-slate-800">
+        Категория {value === '' && guessed !== null && <span className="font-normal text-slate-500">· подобрана по названию</span>}
+      </legend>
+      <div className="flex flex-wrap gap-2">
+        {EXPENSE_CATEGORIES.map((category) => {
+          const selected = active === category.id;
+          return (
+            <button
+              key={category.id}
+              type="button"
+              aria-pressed={selected}
+              className={cx(
+                'inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-sm transition',
+                FOCUS_RING,
+                selected
+                  ? 'border-emerald-700 bg-emerald-50 font-medium text-emerald-900'
+                  : 'border-slate-200 text-slate-700 hover:bg-slate-50',
+              )}
+              onClick={() => onChange(value === category.id ? '' : category.id)}
+            >
+              <span aria-hidden="true">{category.emoji}</span>
+              {category.label}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
   );
 }
 

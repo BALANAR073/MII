@@ -12,6 +12,13 @@ import { ExpenseList } from '../features/expenses/ExpenseList';
 import { useDeferredDelete } from '../features/expenses/useDeferredDelete';
 import { useOptimisticExpenses } from '../features/expenses/useOptimisticExpenses';
 import { GroupHeader } from '../features/groups/GroupHeader';
+import { AddMemberDialog } from '../features/groups/AddMemberDialog';
+import { GroupSettingsDialog } from '../features/groups/GroupSettingsDialog';
+import { InviteDialog } from '../features/groups/InviteDialog';
+import { MemberDialog } from '../features/groups/MemberDialog';
+import { MyDebts } from '../features/balances/MyDebts';
+import { GroupStats } from '../features/stats/GroupStats';
+import { EXPENSE_CATEGORIES, categoryOf } from '../lib/categories';
 import { GroupTabs, type GroupTab } from '../features/groups/GroupTabs';
 import { useGroupActions } from '../features/groups/useGroupActions';
 import { useGroup } from '../features/groups/useGroups';
@@ -20,7 +27,7 @@ import { apiErrorMessage } from '../lib/apiErrorMessage';
 import { cx } from '../lib/cx';
 import { ApiError } from '../types/api';
 import { useCurrentUser } from '../app/AuthProvider';
-import type { GroupDetails } from '../types/group';
+import type { GroupDetails, Member } from '../types/group';
 import type { GroupOutletContext } from './groupOutlet';
 
 /** Экран «Группа» (US-04, 06, 07, 08): загрузка, ошибки и данные группы. */
@@ -41,7 +48,7 @@ export function GroupPage() {
           description={apiErrorMessage(state.error, 'load')}
           action={
             unavailable ? (
-              <Link to="/" className={PRIMARY_LINK}>
+              <Link to="/groups" className={PRIMARY_LINK}>
                 К моим группам
               </Link>
             ) : (
@@ -67,8 +74,10 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
   const [tab, setTab] = useState<GroupTab>('expenses');
   const [transferToMark, setTransferToMark] = useState<SuggestedTransfer | null>(null);
   const [highlightMine, setHighlightMine] = useState(false);
-  const [confirmLeave, setConfirmLeave] = useState(false);
-  const { inviteFriends, inviting, leaveCurrentGroup, leaving } = useGroupActions(group);
+  const [dialog, setDialog] = useState<GroupDialog>(null);
+  const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const { leaveCurrentGroup, leaving } = useGroupActions(group);
   const { hiddenIds, requestDelete } = useDeferredDelete(group.id, reload);
   const optimistic = useOptimisticExpenses(group.id, details.expenses, currentUserId, reload);
 
@@ -77,6 +86,15 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
     () => optimistic.expenses.filter((expense) => !hiddenIds.has(expense.id)),
     [optimistic.expenses, hiddenIds],
   );
+  // Поиск и фильтр по категории меняют только ленту — балансы и статистика считаются по всем расходам.
+  const listedExpenses = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return visibleExpenses.filter(
+      (expense) =>
+        (needle === '' || expense.title.toLowerCase().includes(needle)) &&
+        (categoryFilter === '' || categoryOf(expense.category).id === categoryFilter),
+    );
+  }, [visibleExpenses, query, categoryFilter]);
   const ledger = useMemo(
     () => ({ members: details.members, expenses: visibleExpenses, transfers: details.transfers }),
     [details.members, details.transfers, visibleExpenses],
@@ -102,6 +120,10 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
   }
   const { settlement } = settlementResult;
   const myBalanceKop = settlement.balances.find((balance) => balance.memberId === currentUserId)?.balanceKop ?? 0;
+  const activeCount = group.members.filter((member) => member.leftAt === null).length;
+  const usedCategories = EXPENSE_CATEGORIES.filter((category) =>
+    visibleExpenses.some((expense) => categoryOf(expense.category).id === category.id),
+  );
 
   // «Рассчитаться» (решение Q3): один свой перевод — сразу диалог, несколько — вкладка «Балансы».
   const handleSettle = () => {
@@ -123,10 +145,10 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
             group={group}
             currentUserId={currentUserId}
             myBalanceKop={myBalanceKop}
-            inviting={inviting}
             onSettle={handleSettle}
-            onInvite={() => void inviteFriends()}
-            onLeave={() => setConfirmLeave(true)}
+            onInvite={() => setDialog({ kind: 'invite' })}
+            onAddMember={() => setDialog({ kind: 'add-member' })}
+            onSettings={() => setDialog({ kind: 'settings' })}
           />
           {refreshFailed && (
             <div role="status" className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-2 text-sm text-amber-900">
@@ -136,12 +158,27 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
               </Button>
             </div>
           )}
+          {activeCount === 1 && (
+            <section className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+              <h2 className="text-base font-semibold text-emerald-950">С кем делим?</h2>
+              <p className="mt-1 text-sm text-emerald-900">
+                Добавьте друзей по имени — аккаунт им не нужен. Или отправьте ссылку, чтобы они вступили сами.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button onClick={() => setDialog({ kind: 'add-member' })}>Добавить участников</Button>
+                <Button variant="secondary" onClick={() => setDialog({ kind: 'invite' })}>
+                  Ссылка-приглашение
+                </Button>
+              </div>
+            </section>
+          )}
+          <MyDebts members={group.members} transfers={settlement.transfers} currentUserId={currentUserId} onMark={setTransferToMark} />
           <GroupTabs value={tab} onChange={setTab} />
           <section
             id="panel-expenses"
             role="tabpanel"
             aria-labelledby="tab-expenses"
-            className={cx('bg-white sm:rounded-xl', tab !== 'expenses' && 'hidden lg:block')}
+            className={cx('bg-white sm:rounded-xl', tab === 'balances' && 'hidden lg:block', tab === 'stats' && 'hidden')}
           >
             <div className="flex items-center justify-between px-4 pb-1 pt-4">
               <h2 className="text-base font-semibold text-slate-900">
@@ -151,6 +188,31 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
                 + Расход
               </Link>
             </div>
+            {visibleExpenses.length >= SEARCH_FROM && (
+              <div className="flex flex-col gap-2 px-4 pb-2 pt-2 sm:flex-row">
+                <input
+                  type="search"
+                  aria-label="Поиск по расходам"
+                  placeholder="Поиск по названию"
+                  className="block min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-emerald-700 sm:flex-1"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+                <select
+                  aria-label="Категория"
+                  className="block min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                  value={categoryFilter}
+                  onChange={(event) => setCategoryFilter(event.target.value)}
+                >
+                  <option value="">Все категории</option>
+                  {usedCategories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.emoji} {category.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             {visibleExpenses.length === 0 ? (
               <StatusMessage
                 tone="empty"
@@ -163,14 +225,27 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
                   </Link>
                 }
               />
+            ) : listedExpenses.length === 0 ? (
+              <p role="status" className="px-4 py-8 text-center text-sm text-slate-600">
+                Ничего не нашлось. Измените запрос или категорию.
+              </p>
             ) : (
               <ExpenseList
-                expenses={visibleExpenses}
+                expenses={listedExpenses}
                 members={group.members}
                 currentUserId={currentUserId}
                 pendingIds={optimistic.pendingIds}
               />
             )}
+          </section>
+          <section
+            id="panel-stats"
+            role="tabpanel"
+            aria-labelledby="tab-stats"
+            className={cx('bg-white sm:rounded-xl', tab !== 'stats' && 'hidden')}
+          >
+            <h2 className="px-4 pt-4 text-base font-semibold text-slate-900">Статистика</h2>
+            <GroupStats expenses={visibleExpenses} members={group.members} />
           </section>
         </div>
 
@@ -188,6 +263,9 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
             currentUserId={currentUserId}
             highlightTransfers={highlightMine}
             onMarkTransfer={setTransferToMark}
+            onAddMember={() => setDialog({ kind: 'add-member' })}
+            onInvite={() => setDialog({ kind: 'invite' })}
+            onEditMember={(member, balanceKop) => setDialog({ kind: 'member', member, balanceKop })}
           />
         </div>
       </div>
@@ -198,7 +276,7 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
         className={cx(
           // На вкладке «Балансы» кнопка не нужна и закрывала суммы (баг 3).
           tab !== 'expenses' && 'hidden',
-          'fixed bottom-6 right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-700 text-3xl text-white shadow-lg hover:bg-emerald-800 lg:hidden',
+          'fixed bottom-20 right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-700 text-3xl text-white shadow-lg hover:bg-emerald-800 lg:hidden',
           FOCUS_RING,
         )}
       >
@@ -218,13 +296,34 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
         />
       )}
 
-      {confirmLeave && (
-        <Dialog title="Выйти из группы?" onClose={() => setConfirmLeave(false)}>
+      {dialog?.kind === 'add-member' && <AddMemberDialog groupId={group.id} onClose={() => setDialog(null)} onAdded={reload} />}
+      {dialog?.kind === 'invite' && <InviteDialog group={group} currentUserId={currentUserId} onClose={() => setDialog(null)} />}
+      {dialog?.kind === 'member' && (
+        <MemberDialog
+          groupId={group.id}
+          member={dialog.member}
+          balanceKop={dialog.balanceKop}
+          onClose={() => setDialog(null)}
+          onChanged={reload}
+        />
+      )}
+      {dialog?.kind === 'settings' && (
+        <GroupSettingsDialog
+          group={group}
+          currentUserId={currentUserId}
+          onClose={() => setDialog(null)}
+          onSaved={reload}
+          onLeave={() => setDialog({ kind: 'leave' })}
+        />
+      )}
+
+      {dialog?.kind === 'leave' && (
+        <Dialog title="Выйти из группы?" onClose={() => setDialog(null)}>
           <p className="text-sm text-slate-700">
             Группа пропадёт из вашего списка. Выйти можно, только если вы в расчёте. Вернуться можно по ссылке-приглашению.
           </p>
           <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="ghost" onClick={() => setConfirmLeave(false)}>
+            <Button variant="ghost" onClick={() => setDialog(null)}>
               Остаться
             </Button>
             <Button
@@ -233,7 +332,7 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
               onClick={() => {
                 void leaveCurrentGroup().then((left) => {
                   if (!left) {
-                    setConfirmLeave(false);
+                    setDialog(null);
                   }
                 });
               }}
@@ -251,6 +350,18 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
     </div>
   );
 }
+
+/** С какого числа расходов показывать поиск и фильтр. */
+const SEARCH_FROM = 4;
+
+/** Открытое окно экрана группы. */
+type GroupDialog =
+  | { kind: 'add-member' }
+  | { kind: 'invite' }
+  | { kind: 'settings' }
+  | { kind: 'leave' }
+  | { kind: 'member'; member: Member; balanceKop: number }
+  | null;
 
 function GroupPageSkeleton() {
   return (

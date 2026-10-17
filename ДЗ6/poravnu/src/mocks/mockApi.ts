@@ -2,7 +2,7 @@ import { calculateBalances } from '../features/balances/calculateBalances';
 import { getSplitMemberIds } from '../features/balances/getExpenseShares';
 import { MAX_AMOUNT_KOP } from '../lib/money';
 import { ApiError, type ApiErrorKind, type ExpenseInput, type InvitePreview, type TransferInput } from '../types/api';
-import type { Expense, Group, GroupDetails, GroupSummary, MemberId, Transfer } from '../types/group';
+import type { Expense, Group, GroupDetails, GroupSummary, Member, MemberId, Transfer } from '../types/group';
 import { mockUserId, mockUserName } from './mockAuth';
 import { createSeed, type MockDb } from './seed';
 
@@ -138,7 +138,11 @@ export async function deleteExpense(groupId: string, expenseId: string): Promise
 export async function addTransfer(groupId: string, input: TransferInput): Promise<Transfer> {
   await respond();
   const group = requireMemberGroup(groupId);
-  if (input.fromId !== mockUserId() && input.toId !== mockUserId()) {
+  // С участником без аккаунта перевод может отметить любой участник группы (миграция 6).
+  const withVirtual = [input.fromId, input.toId].some((id) =>
+    group.members.some((member) => member.id === id && member.isVirtual === true),
+  );
+  if (input.fromId !== mockUserId() && input.toId !== mockUserId() && !withVirtual) {
     throw new ApiError('forbidden', 'Отметить перевод могут только его участники');
   }
   if (input.fromId === input.toId || !isActiveMember(group, input.fromId) || !isActiveMember(group, input.toId)) {
@@ -211,7 +215,14 @@ export async function getInvitePreview(token: string): Promise<InvitePreview> {
   if (group === undefined) {
     throw new ApiError('invalid-invite', 'Приглашение недействительно. Попросите новую ссылку');
   }
-  return { groupName: group.name, emoji: group.emoji, membersCount: group.members.filter((member) => member.leftAt === null).length };
+  return {
+    groupName: group.name,
+    emoji: group.emoji,
+    membersCount: group.members.filter((member) => member.leftAt === null).length,
+    places: group.members
+      .filter((member) => member.isVirtual === true && member.leftAt === null)
+      .map((member) => ({ memberId: member.id, name: member.name })),
+  };
 }
 
 /** Вступление по ссылке; вышедший участник возвращается (Q5), лимит — 50 (Q9). */
@@ -235,6 +246,122 @@ export async function joinGroup(token: string): Promise<string> {
   }
   saveDb();
   return group.id;
+}
+
+/** Вступление по ссылке с перехватом места участника без аккаунта: его история становится историей аккаунта. */
+export async function claimMember(token: string, memberId: MemberId): Promise<string> {
+  await respond();
+  const group = db.groups.find((item) => item.inviteToken === token);
+  if (group === undefined) {
+    throw new ApiError('invalid-invite', 'Приглашение недействительно. Попросите новую ссылку');
+  }
+  if (group.members.some((member) => member.id === mockUserId())) {
+    throw new ApiError('already-member', 'Вы уже состоите в этой группе');
+  }
+  const place = group.members.find((member) => member.id === memberId && member.isVirtual === true && member.leftAt === null);
+  if (place === undefined) {
+    throw new ApiError('place-taken', 'Это место уже занято. Обновите страницу');
+  }
+  const me = mockUserId();
+  for (const expense of db.expenses.filter((item) => item.groupId === group.id)) {
+    if (expense.payerId === memberId) expense.payerId = me;
+    expense.split =
+      expense.split.kind === 'equal'
+        ? { kind: 'equal', memberIds: expense.split.memberIds.map((id) => (id === memberId ? me : id)) }
+        : {
+            kind: 'shares',
+            shares: expense.split.shares.map((share) => (share.memberId === memberId ? { ...share, memberId: me } : share)),
+          };
+  }
+  for (const transfer of db.transfers.filter((item) => item.groupId === group.id)) {
+    if (transfer.fromId === memberId) transfer.fromId = me;
+    if (transfer.toId === memberId) transfer.toId = me;
+  }
+  place.id = me;
+  place.name = mockUserName();
+  delete place.isVirtual;
+  saveDb();
+  return group.id;
+}
+
+/** Участник по имени, без аккаунта (миграция 6). */
+export async function addMember(groupId: string, name: string): Promise<Member> {
+  await respond();
+  const group = requireMemberGroup(groupId);
+  const trimmed = name.trim();
+  if (trimmed.length < 1 || trimmed.length > 40) {
+    throw new ApiError('validation', 'Имя — от 1 до 40 символов');
+  }
+  if (group.members.filter((member) => member.leftAt === null).length >= MAX_MEMBERS) {
+    throw new ApiError('group-full', 'В группе уже 50 участников');
+  }
+  const member: Member = { id: nextId('m'), name: trimmed, joinedAt: new Date().toISOString(), leftAt: null, isVirtual: true };
+  group.members.push(member);
+  saveDb();
+  return structuredClone(member);
+}
+
+/** Переименовать участника без аккаунта. */
+export async function renameMember(groupId: string, memberId: MemberId, name: string): Promise<void> {
+  await respond();
+  const member = requireVirtualMember(requireMemberGroup(groupId), memberId, 'Переименовать можно только участника без аккаунта');
+  const trimmed = name.trim();
+  if (trimmed.length < 1 || trimmed.length > 40) {
+    throw new ApiError('validation', 'Имя — от 1 до 40 символов');
+  }
+  member.name = trimmed;
+  saveDb();
+}
+
+/** Убрать участника без аккаунта — только при нулевом балансе. */
+export async function removeMember(groupId: string, memberId: MemberId): Promise<void> {
+  await respond();
+  const group = requireMemberGroup(groupId);
+  const member = requireVirtualMember(group, memberId, 'Убрать можно только участника без аккаунта');
+  const balanceKop = calculateBalances(collectDetails(group)).find((item) => item.memberId === memberId)?.balanceKop ?? 0;
+  if (balanceKop !== 0) {
+    throw new ApiError('balance-not-zero', 'Сначала рассчитайтесь', balanceKop);
+  }
+  member.leftAt = new Date().toISOString();
+  saveDb();
+}
+
+/** Название и эмодзи группы — только владелец. */
+export async function updateGroup(groupId: string, input: { name: string; emoji: string }): Promise<void> {
+  await respond();
+  const group = requireOwnedGroup(groupId, 'Изменить группу может только владелец');
+  const name = input.name.trim();
+  if (name.length < 1 || name.length > 50) {
+    throw new ApiError('validation', 'Название — от 1 до 50 символов');
+  }
+  group.name = name;
+  group.emoji = input.emoji;
+  saveDb();
+}
+
+/** Новая ссылка-приглашение — только владелец. */
+export async function rotateInvite(groupId: string): Promise<string> {
+  await respond();
+  const group = requireOwnedGroup(groupId, 'Сбросить ссылку может только владелец группы');
+  group.inviteToken = nextId('inv');
+  saveDb();
+  return `${window.location.origin}/join/${group.inviteToken}`;
+}
+
+function requireVirtualMember(group: Group, memberId: MemberId, message: string): Member {
+  const member = group.members.find((item) => item.id === memberId && item.isVirtual === true && item.leftAt === null);
+  if (member === undefined) {
+    throw new ApiError('place-taken', message);
+  }
+  return member;
+}
+
+function requireOwnedGroup(groupId: string, message: string): Group {
+  const group = requireMemberGroup(groupId);
+  if (group.ownerId !== mockUserId()) {
+    throw new ApiError('forbidden', message);
+  }
+  return group;
 }
 
 async function respond(): Promise<void> {

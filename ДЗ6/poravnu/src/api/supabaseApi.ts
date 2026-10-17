@@ -82,9 +82,11 @@ function createDataApi(client: Client): DataApi {
       const nameById = new Map(profiles.map((profile) => [profile.id, profile.name]));
       const memberList: Member[] = members.map((member) => ({
         id: member.user_id,
-        name: nameById.get(member.user_id) ?? 'Участник',
+        // У участника без аккаунта имя хранится в самой строке участия (миграция 6).
+        name: member.is_virtual ? (member.display_name ?? 'Участник') : (nameById.get(member.user_id) ?? 'Участник'),
         joinedAt: member.joined_at,
         leftAt: member.left_at,
+        ...(member.is_virtual ? { isVirtual: true } : {}),
       }));
       return {
         group: toGroup(group, memberList),
@@ -162,15 +164,47 @@ function createDataApi(client: Client): DataApi {
     },
 
     getInvitePreview: async (token) => {
-      const rows = await run('get_invite_preview', client.rpc('get_invite_preview', { p_token: token }));
+      const [rows, places] = await Promise.all([
+        run('get_invite_preview', client.rpc('get_invite_preview', { p_token: token })),
+        run('get_invite_members', client.rpc('get_invite_members', { p_token: token })),
+      ]);
       const [row] = rows;
       if (row === undefined) {
         throw new ApiError('invalid-invite', 'Приглашение недействительно. Попросите новую ссылку');
       }
-      return { groupName: row.group_name, emoji: row.emoji, membersCount: row.members_count };
+      return {
+        groupName: row.group_name,
+        emoji: row.emoji,
+        membersCount: row.members_count,
+        places: places.map((place) => ({ memberId: place.member_id, name: place.name })),
+      };
     },
 
     joinGroup: async (token) => run('join_group', client.rpc('join_group', { p_token: token })),
+
+    claimMember: async (token, memberId) => run('claim_member', client.rpc('claim_member', { p_token: token, p_member: memberId })),
+
+    addMember: async (groupId, name) => {
+      const id = await run('add_member', client.rpc('add_member', { p_group: groupId, p_name: name }));
+      return { id, name: name.trim(), joinedAt: new Date().toISOString(), leftAt: null, isVirtual: true };
+    },
+
+    renameMember: async (groupId, memberId, name) => {
+      await runVoid('rename_member', client.rpc('rename_member', { p_group: groupId, p_member: memberId, p_name: name }));
+    },
+
+    removeMember: async (groupId, memberId) => {
+      await runVoid('remove_member', client.rpc('remove_member', { p_group: groupId, p_member: memberId }));
+    },
+
+    updateGroup: async (groupId, { name, emoji }) => {
+      await runVoid('update_group', client.rpc('update_group', { p_group: groupId, p_name: name, p_emoji: emoji }));
+    },
+
+    rotateInvite: async (groupId) => {
+      const token = await run('rotate_invite', client.rpc('rotate_invite', { p_group: groupId }));
+      return `${window.location.origin}/join/${token}`;
+    },
   };
 }
 
@@ -228,6 +262,21 @@ function createAuthApi(client: Client, url: string, anonKey: string): AuthApi {
       } catch {
         return [];
       }
+    },
+    updateName: async (name) => {
+      const trimmed = name.trim();
+      const { data: session } = await client.auth.getSession();
+      const userId = session.session?.user.id;
+      if (userId === undefined) {
+        throw loggedAuth('auth.update_name', { status: 401, message: 'No session' });
+      }
+      // Имя видят другие участники — в таблице profiles; имя в шапке — в метаданных сессии.
+      await runVoid('profiles.update', client.from('profiles').update({ name: trimmed }).eq('id', userId));
+      const { data, error } = await client.auth.updateUser({ data: { name: trimmed } });
+      if (error !== null) {
+        throw loggedAuth('auth.update_name', error);
+      }
+      return userFromSupabase(data.user);
     },
     signInWithOAuth: async (provider, next) => {
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
@@ -352,6 +401,7 @@ function toExpense(row: ExpenseRow): Expense {
     payerId: row.payer_id,
     split: parseSplit(row.split),
     date: row.date,
+    category: row.category,
     createdBy: row.created_by,
     createdAt: row.created_at,
   };
@@ -370,7 +420,14 @@ function toTransfer(row: TransferRow): Transfer {
 }
 
 function toExpenseColumns(input: ExpenseInput) {
-  return { title: input.title, amount_kop: input.amountKop, payer_id: input.payerId, split: splitToJson(input.split), date: input.date };
+  return {
+    title: input.title,
+    amount_kop: input.amountKop,
+    payer_id: input.payerId,
+    split: splitToJson(input.split),
+    date: input.date,
+    category: input.category ?? null,
+  };
 }
 
 function splitToJson(split: ExpenseSplit): Json {

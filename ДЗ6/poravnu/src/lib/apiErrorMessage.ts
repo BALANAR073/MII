@@ -45,6 +45,10 @@ export function apiErrorMessage(error: unknown, context: ErrorContext): string {
       return 'Неверный email или пароль';
     case 'auth-email-taken':
       return 'Этот email уже зарегистрирован';
+    case 'already-member':
+      return 'Вы уже состоите в этой группе';
+    case 'place-taken':
+      return error.message || 'Это место уже занято. Обновите страницу';
   }
 }
 
