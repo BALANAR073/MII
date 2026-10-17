@@ -55,7 +55,7 @@ jobs:
           shopt -s nullglob
           files=(sarif-results/*.sarif)
           [ ${#files[@]} -gt 0 ] || { echo "::warning title=CodeQL::SARIF не найден"; exit 0; }
-          rules=$(jq '[.runs[].tool.driver.rules // [] | length] | add // 0' "${files[@]}" | paste -sd+ | bc)
+          rules=$(jq '[.runs[].tool | ((.driver.rules // []) + ([.extensions[]?.rules // []] | add // [])) | length] | add // 0' "${files[@]}" | paste -sd+ | bc)
           found=$(jq '[.runs[].results[]?] | length' "${files[@]}" | paste -sd+ | bc)
           echo "::notice title=CodeQL ${{ matrix.language }}::правил проверено: $rules, найдено: $found"
           jq -r '.runs[].results[]? | "::warning file=\(.locations[0].physicalLocation.artifactLocation.uri),line=\(.locations[0].physicalLocation.region.startLine // 1),title=CodeQL \(.ruleId)::\(.message.text | gsub("\n"; " "))"' "${files[@]}" | head -10
