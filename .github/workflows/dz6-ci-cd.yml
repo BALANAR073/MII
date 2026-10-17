@@ -57,7 +57,9 @@ jobs:
         run: npm run typecheck
 
       - name: Автотесты (фронтенд, API-функции, БД на PGlite)
-        run: npm test
+        run: |
+          npm test -- --reporter=default --reporter=json --outputFile.json=vitest.json
+          echo "::notice title=Автотесты::$(jq -r '"пройдено \(.numPassedTests) из \(.numTotalTests), файлов: \(.numTotalTestSuites)"' vitest.json)"
 
       - name: Аудит зависимостей (production, уровень high и выше)
         run: npm audit --omit=dev --audit-level=high

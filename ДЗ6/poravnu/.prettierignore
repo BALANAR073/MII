@@ -9,3 +9,4 @@ supabase/migrations
 src/api/database.types.ts
 # Служебный e2e-скрипт ДЗ5: Prettier 3 форматирует его неустойчиво (результат меняется между проходами)
 scripts/e2e-supabase.mjs
+vitest.json
