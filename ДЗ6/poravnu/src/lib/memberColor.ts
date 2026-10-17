@@ -8,5 +8,8 @@ import type { Member, MemberId } from '../types/group';
  * @returns Индекс не меньше 0 (для неизвестного id — 0).
  */
 export function memberColorIndex(members: readonly Member[], memberId: MemberId): number {
-  return Math.max(0, members.findIndex((member) => member.id === memberId));
+  return Math.max(
+    0,
+    members.findIndex((member) => member.id === memberId),
+  );
 }

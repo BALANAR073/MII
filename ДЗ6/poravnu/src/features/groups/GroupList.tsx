@@ -23,13 +23,20 @@ export function GroupList({ groups, compact = false }: GroupListProps) {
               to={`/groups/${group.id}`}
               className={({ isActive }) =>
                 cx(
-                  'flex items-center gap-3 transition', FOCUS_RING_INSET,
+                  'flex items-center gap-3 transition',
+                  FOCUS_RING_INSET,
                   compact ? 'rounded-xl px-3 py-2' : 'px-4 py-4 hover:bg-slate-50',
                   compact && (isActive ? 'bg-emerald-50 text-emerald-900' : 'text-slate-700 hover:bg-slate-100'),
                 )
               }
             >
-              <span aria-hidden="true" className={cx('flex shrink-0 items-center justify-center rounded-xl bg-slate-100', compact ? 'h-8 w-8 text-base' : 'h-12 w-12 text-2xl')}>
+              <span
+                aria-hidden="true"
+                className={cx(
+                  'flex shrink-0 items-center justify-center rounded-xl bg-slate-100',
+                  compact ? 'h-8 w-8 text-base' : 'h-12 w-12 text-2xl',
+                )}
+              >
                 {group.emoji}
               </span>
               <span className="min-w-0 flex-1">

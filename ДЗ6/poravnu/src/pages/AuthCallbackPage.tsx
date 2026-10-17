@@ -21,7 +21,9 @@ export function AuthCallbackPage() {
       <div className="mx-auto max-w-sm px-4 py-10">
         <h1 className="text-2xl font-semibold text-slate-900">Не удалось войти</h1>
         <p role="alert" className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-800">
-          {providerError === null ? 'Вход не завершён. Попробуйте ещё раз.' : 'Вход отменён или провайдер вернул ошибку. Попробуйте ещё раз.'}
+          {providerError === null
+            ? 'Вход не завершён. Попробуйте ещё раз.'
+            : 'Вход отменён или провайдер вернул ошибку. Попробуйте ещё раз.'}
         </p>
         <Link
           to={`/login${next === '/' ? '' : `?next=${encodeURIComponent(next)}`}`}

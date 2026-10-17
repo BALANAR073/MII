@@ -49,20 +49,20 @@ export function GroupsPage() {
         ))}
 
       {!IS_SUPABASE && (
-      <p className="mt-8 px-4 text-center text-xs text-slate-500 sm:px-0">
-        Демо на mock-данных: всё хранится в этом браузере.{' '}
-        <button
-          type="button"
-          className="font-medium text-slate-700 underline"
-          onClick={() => {
-            resetMockDb();
-            setRefreshKey((key) => key + 1);
-            showToast({ message: 'Демо-данные восстановлены' });
-          }}
-        >
-          Сбросить демо-данные
-        </button>
-      </p>
+        <p className="mt-8 px-4 text-center text-xs text-slate-500 sm:px-0">
+          Демо на mock-данных: всё хранится в этом браузере.{' '}
+          <button
+            type="button"
+            className="font-medium text-slate-700 underline"
+            onClick={() => {
+              resetMockDb();
+              setRefreshKey((key) => key + 1);
+              showToast({ message: 'Демо-данные восстановлены' });
+            }}
+          >
+            Сбросить демо-данные
+          </button>
+        </p>
       )}
 
       {creating && (

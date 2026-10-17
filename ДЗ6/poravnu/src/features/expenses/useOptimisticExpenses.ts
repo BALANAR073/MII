@@ -48,7 +48,9 @@ export function useOptimisticExpenses(
   useEffect(() => {
     const serverIds = new Set(serverExpenses.map((expense) => expense.id));
     // Тот же массив, если убирать нечего, — без лишней перерисовки (находка 23).
-    setItems((current) => (current.some((item) => serverIds.has(item.expense.id)) ? current.filter((item) => !serverIds.has(item.expense.id)) : current));
+    setItems((current) =>
+      current.some((item) => serverIds.has(item.expense.id)) ? current.filter((item) => !serverIds.has(item.expense.id)) : current,
+    );
   }, [serverExpenses]);
 
   const expenses = useMemo(() => {

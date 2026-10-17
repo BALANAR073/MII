@@ -50,7 +50,9 @@ export interface TestDb {
 export async function createTestDb(): Promise<TestDb> {
   const db = new PGlite();
   await db.exec(SUPABASE_STUB);
-  const files = readdirSync(MIGRATIONS_DIR).filter((file) => file.endsWith('.sql')).sort();
+  const files = readdirSync(MIGRATIONS_DIR)
+    .filter((file) => file.endsWith('.sql'))
+    .sort();
   for (const file of files) {
     await db.exec(readFileSync(join(MIGRATIONS_DIR, file), 'utf8'));
   }

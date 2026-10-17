@@ -3,7 +3,13 @@ import { Button } from '../../components/ui/Button';
 import { cx } from '../../lib/cx';
 import type { ExpenseInput } from '../../types/api';
 import type { Member } from '../../types/group';
-import { validateExpenseForm, type ExpenseFormErrors, type ExpenseFormField, type ExpenseFormValues, type SplitMode } from './expenseFormModel';
+import {
+  validateExpenseForm,
+  type ExpenseFormErrors,
+  type ExpenseFormField,
+  type ExpenseFormValues,
+  type SplitMode,
+} from './expenseFormModel';
 import { FOCUS_RING } from '../../components/ui/styles';
 import { handleRovingKeyDown } from '../../components/ui/roving';
 
@@ -138,7 +144,8 @@ export function ExpenseForm({ initialValues, activeMembers, submitLabel, pending
               aria-checked={values.mode === mode}
               tabIndex={values.mode === mode ? 0 : -1}
               className={cx(
-                'min-h-11 rounded-lg text-sm font-medium transition', FOCUS_RING,
+                'min-h-11 rounded-lg text-sm font-medium transition',
+                FOCUS_RING,
                 values.mode === mode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600',
               )}
               onClick={() => update({ mode })}

@@ -12,7 +12,12 @@ const PREV_KEYS = new Set(['ArrowLeft', 'ArrowUp']);
  * @param current Выбранный вариант.
  * @param select Выбор нового варианта.
  */
-export function handleRovingKeyDown<T>(event: KeyboardEvent<HTMLElement>, options: readonly T[], current: T, select: (value: T) => void): void {
+export function handleRovingKeyDown<T>(
+  event: KeyboardEvent<HTMLElement>,
+  options: readonly T[],
+  current: T,
+  select: (value: T) => void,
+): void {
   const index = options.indexOf(current);
   let nextIndex: number;
   if (NEXT_KEYS.has(event.key)) {

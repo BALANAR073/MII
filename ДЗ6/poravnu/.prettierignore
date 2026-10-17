@@ -1,0 +1,11 @@
+dist
+coverage
+node_modules
+package-lock.json
+*.md
+supabase/*.sql
+supabase/migrations
+# Типы Supabase: генерируются (supabase gen types) и правятся только генератором
+src/api/database.types.ts
+# Служебный e2e-скрипт ДЗ5: Prettier 3 форматирует его неустойчиво (результат меняется между проходами)
+scripts/e2e-supabase.mjs

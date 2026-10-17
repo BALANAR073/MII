@@ -48,12 +48,9 @@ describe('parseRubToKop (FR-3.3)', () => {
     expect(parseRubToKop(input)).toEqual({ ok: true, amountKop: expected });
   });
 
-  it.each(['', '0', '0,00', '-5', '+5', '12,345', '12,', ',5', '1e3', '12.000,00', 'abc', '12  000'])(
-    '«%s» — ошибка формата',
-    (input) => {
-      expect(parseRubToKop(input)).toEqual({ ok: false, error: 'invalid' });
-    },
-  );
+  it.each(['', '0', '0,00', '-5', '+5', '12,345', '12,', ',5', '1e3', '12.000,00', 'abc', '12  000'])('«%s» — ошибка формата', (input) => {
+    expect(parseRubToKop(input)).toEqual({ ok: false, error: 'invalid' });
+  });
 
   it('сумма больше 1 000 000 ₽ — отдельная ошибка', () => {
     expect(parseRubToKop('1000000,01')).toEqual({ ok: false, error: 'too-large' });

@@ -31,10 +31,7 @@ export function GroupHeader({ group, currentUserId, myBalanceKop, inviting = fal
 
   return (
     <header className="bg-white px-4 pb-5 pt-4 sm:rounded-xl">
-      <Link
-        to="/"
-        className="mb-3 inline-flex min-h-11 items-center text-sm font-medium text-slate-600 hover:text-slate-900 xl:hidden"
-      >
+      <Link to="/" className="mb-3 inline-flex min-h-11 items-center text-sm font-medium text-slate-600 hover:text-slate-900 xl:hidden">
         ← Мои группы
       </Link>
       <h1 className="text-2xl font-semibold text-slate-900">
@@ -63,9 +60,7 @@ export function GroupHeader({ group, currentUserId, myBalanceKop, inviting = fal
       </div>
 
       <div className="mt-6">
-        <p className="text-sm text-slate-600">
-          {status === 'owes' ? 'Вы должны' : status === 'owed' ? 'Вам должны' : 'Ваш баланс'}
-        </p>
+        <p className="text-sm text-slate-600">{status === 'owes' ? 'Вы должны' : status === 'owed' ? 'Вам должны' : 'Ваш баланс'}</p>
         <p className={cx('mt-1 text-4xl font-semibold tabular-nums tracking-tight', BALANCE_COLOR[status])}>
           {status === 'settled' ? 'Вы в расчёте' : formatRub(Math.abs(myBalanceKop))}
         </p>
@@ -78,7 +73,10 @@ export function GroupHeader({ group, currentUserId, myBalanceKop, inviting = fal
         </Button>
         <Link
           to="history"
-          className={cx('inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100', FOCUS_RING)}
+          className={cx(
+            'inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100',
+            FOCUS_RING,
+          )}
         >
           История
         </Link>

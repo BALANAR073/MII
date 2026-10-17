@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { type ReactNode, useEffect, useId, useLayoutEffect, useRef } from 'react';
 import { cx } from '../../lib/cx';
 import { FOCUS_RING } from './styles';
 
@@ -11,7 +11,8 @@ interface DialogProps {
   footer?: ReactNode;
 }
 
-const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])';
 
 /**
  * Модальное окно: закрывается по Esc и кнопке, держит фокус внутри и возвращает его после закрытия (NFR-2).
@@ -20,7 +21,10 @@ export function Dialog({ title, onClose, children, fullScreenOnMobile = false, f
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  // Свежий обработчик без перезапуска эффектов; запись в ref — не во время рендера (react-hooks/refs).
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -77,7 +81,10 @@ export function Dialog({ title, onClose, children, fullScreenOnMobile = false, f
             type="button"
             onClick={onClose}
             aria-label="Закрыть"
-            className={cx('flex h-11 w-11 items-center justify-center rounded-xl text-2xl leading-none text-slate-500 hover:bg-slate-100', FOCUS_RING)}
+            className={cx(
+              'flex h-11 w-11 items-center justify-center rounded-xl text-2xl leading-none text-slate-500 hover:bg-slate-100',
+              FOCUS_RING,
+            )}
           >
             ×
           </button>

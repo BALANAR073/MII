@@ -20,9 +20,7 @@ export interface ExpenseFormValues {
 export type ExpenseFormField = 'title' | 'amount' | 'members' | 'weights' | 'date';
 export type ExpenseFormErrors = Partial<Record<ExpenseFormField, string>>;
 
-export type ExpenseFormResult =
-  | { ok: true; input: ExpenseInput }
-  | { ok: false; errors: ExpenseFormErrors };
+export type ExpenseFormResult = { ok: true; input: ExpenseInput } | { ok: false; errors: ExpenseFormErrors };
 
 /** Тексты ошибок из раздела 6 ТЗ (ERR-1). */
 export const FORM_ERRORS = {

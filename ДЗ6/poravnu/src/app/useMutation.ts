@@ -32,7 +32,7 @@ export function useMutation(): MutationResult {
   }, []);
 
   const run = useCallback(
-    async <T,>(request: () => Promise<T>): Promise<T | undefined> => {
+    async <T>(request: () => Promise<T>): Promise<T | undefined> => {
       if (pendingRef.current) {
         return undefined;
       }

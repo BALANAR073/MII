@@ -52,7 +52,10 @@ export async function runHealthCheck(env: ServerEnv, fetchImpl: FetchLike = fetc
   const [auth, database] = configured
     ? await Promise.all([
         timed(now, async () => {
-          const response = await fetchImpl(`${env.supabaseUrl}/auth/v1/settings`, { headers, signal: AbortSignal.timeout(CHECK_TIMEOUT_MS) });
+          const response = await fetchImpl(`${env.supabaseUrl}/auth/v1/settings`, {
+            headers,
+            signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
+          });
           return response.ok ? null : `HTTP ${response.status}`;
         }),
         timed(now, async () => {
