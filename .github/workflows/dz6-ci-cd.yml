@@ -1,4 +1,4 @@
-# ДЗ6 · CI/CD «ПоРовну»: проверки на каждый push и pull request, выкладка на Vercel из main.
+# ДЗ6 · CI/CD «ПоРовну»: форматирование, линтер, типы, тесты, аудит и сборка на каждый push и pull request; выкладка на Vercel из main.
 # Секрет: VERCEL_TOKEN (Settings → Secrets → Actions). Переменные (Settings → Variables → Actions):
 # VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY — публичные адрес и publishable-ключ Supabase.
 name: ДЗ6 CI/CD
@@ -43,6 +43,12 @@ jobs:
 
       - name: Установка зависимостей
         run: npm ci --no-audit --no-fund
+
+      - name: Форматирование (Prettier)
+        run: npm run format:check
+
+      - name: Линтер (ESLint — правила CLAUDE.md, хуки React, доступность)
+        run: npm run lint
 
       - name: Проверка типов
         run: npm run typecheck

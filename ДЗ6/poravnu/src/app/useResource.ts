@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export type ResourceState<T> = { status: 'loading' } | { status: 'error'; error: unknown } | { status: 'success'; data: T };
 
@@ -24,17 +24,28 @@ interface ResourceResult<T> {
 export function useResource<T>(key: string, loader: () => Promise<T>): ResourceResult<T> {
   const [state, setState] = useState<ResourceState<T>>({ status: 'loading' });
   const [refreshFailed, setRefreshFailed] = useState(false);
+  const [loadedKey, setLoadedKey] = useState(key);
   const loaderRef = useRef(loader);
-  loaderRef.current = loader;
   const requestRef = useRef(0);
   const hasDataRef = useRef(false);
 
-  const load = useCallback((silent: boolean) => {
+  // Новый ключ — сразу скелетон, ещё в этом рендере (а не вторым рендером из эффекта): так советует React
+  // и требует react-hooks/set-state-in-effect (линтер ДЗ6).
+  if (loadedKey !== key) {
+    setLoadedKey(key);
+    setState({ status: 'loading' });
+    setRefreshFailed(false);
+  }
+
+  // Свежая функция загрузки — до эффектов, которые её вызывают (запись ref во время рендера запрещена: react-hooks/refs).
+  useLayoutEffect(() => {
+    loaderRef.current = loader;
+  });
+
+  /** Запрос без синхронного setState: результат применяется только из колбэков промиса. */
+  const fetchData = useCallback((silent: boolean) => {
     requestRef.current += 1;
     const requestId = requestRef.current;
-    if (!silent) {
-      setState({ status: 'loading' });
-    }
     loaderRef
       .current()
       .then((data) => {
@@ -57,10 +68,20 @@ export function useResource<T>(key: string, loader: () => Promise<T>): ResourceR
       });
   }, []);
 
+  const load = useCallback(
+    (silent: boolean) => {
+      if (!silent) {
+        setState({ status: 'loading' });
+      }
+      fetchData(silent);
+    },
+    [fetchData],
+  );
+
   useEffect(() => {
     hasDataRef.current = false;
-    load(false);
-  }, [key, load]);
+    fetchData(false);
+  }, [key, fetchData]);
 
   useEffect(() => {
     const handleFocus = () => {

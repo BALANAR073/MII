@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { type ReactNode, useEffect, useId, useLayoutEffect, useRef } from 'react';
 import { cx } from '../../lib/cx';
 import { FOCUS_RING } from './styles';
 
@@ -21,7 +21,10 @@ export function Dialog({ title, onClose, children, fullScreenOnMobile = false, f
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  // Свежий обработчик без перезапуска эффектов; запись в ref — не во время рендера (react-hooks/refs).
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;

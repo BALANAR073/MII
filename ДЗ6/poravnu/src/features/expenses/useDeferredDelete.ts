@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useToast } from '../../components/ui/Toast';
 import { apiErrorMessage } from '../../lib/apiErrorMessage';
 import { deleteExpense } from '../../api';
@@ -33,7 +33,10 @@ export function useDeferredDelete(groupId: string, onDeleted: () => void): Defer
   const [hiddenIds, setHiddenIds] = useState<ReadonlySet<string>>(new Set());
   const pendingRef = useRef(new Map<string, PendingDelete>());
   const onDeletedRef = useRef(onDeleted);
-  onDeletedRef.current = onDeleted;
+  // Свежий обработчик без перезапуска эффектов; запись в ref — не во время рендера (react-hooks/refs).
+  useLayoutEffect(() => {
+    onDeletedRef.current = onDeleted;
+  });
   const { showToast, dismissToast } = useToast();
 
   const setHidden = useCallback((id: string, hidden: boolean) => {
