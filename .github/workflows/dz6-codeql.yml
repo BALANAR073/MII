@@ -1,0 +1,48 @@
+# ДЗ6 · Аудит безопасности: статический анализ кода CodeQL (набор security-extended — правила по OWASP Top 10:
+# XSS, open redirect, инъекции, утечки в логи, небезопасные регулярные выражения).
+# Находки появляются в Security → Code scanning; новые находки в pull request видны прямо в PR.
+name: ДЗ6 CodeQL
+
+on:
+  push:
+    branches: [main]
+    paths: ['ДЗ6/poravnu/**', '.github/workflows/**']
+  pull_request:
+    paths: ['ДЗ6/poravnu/**', '.github/workflows/**']
+  schedule:
+    - cron: '41 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            source-root: ДЗ6/poravnu
+          # Сами workflow тоже код: проверяются права GITHUB_TOKEN, подстановка ${{ }} в run, незакреплённые actions.
+          - language: actions
+            source-root: .github
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          languages: ${{ matrix.language }}
+          source-root: ${{ matrix.source-root }}
+          build-mode: none
+          queries: security-extended
+
+      - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          category: /language:${{ matrix.language }}

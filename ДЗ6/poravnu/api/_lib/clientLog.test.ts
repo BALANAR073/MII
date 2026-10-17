@@ -2,7 +2,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { POST } from '../log';
-import { MAX_RECORDS, parseClientLogs, redact } from './clientLog';
+import { isSameOriginRequest, MAX_RECORDS, parseClientLogs, redact } from './clientLog';
 import { serverLog } from './serverLog';
 
 describe('parseClientLogs', () => {
@@ -58,6 +58,22 @@ describe('redact', () => {
   });
 });
 
+describe('isSameOriginRequest', () => {
+  const url = 'https://poravnu.vercel.app/api/log';
+
+  it('свой сайт — да, чужой — нет (по Sec-Fetch-Site)', () => {
+    expect(isSameOriginRequest(new Headers({ 'sec-fetch-site': 'same-origin' }), url)).toBe(true);
+    expect(isSameOriginRequest(new Headers({ 'sec-fetch-site': 'cross-site' }), url)).toBe(false);
+    expect(isSameOriginRequest(new Headers({ 'sec-fetch-site': 'same-site' }), url)).toBe(false);
+  });
+
+  it('без Sec-Fetch-Site сравнивает Origin; без обоих заголовков пропускает', () => {
+    expect(isSameOriginRequest(new Headers({ origin: 'https://poravnu.vercel.app' }), url)).toBe(true);
+    expect(isSameOriginRequest(new Headers({ origin: 'https://evil.example' }), url)).toBe(false);
+    expect(isSameOriginRequest(new Headers(), url)).toBe(true);
+  });
+});
+
 describe('serverLog', () => {
   it('пишет одну JSON-строку со служебными полями', () => {
     const lines: string[] = [];
@@ -92,5 +108,19 @@ describe('POST /api/log', () => {
     expect(big.status).toBe(413);
     const bad = await POST(new Request('https://poravnu.test/api/log', { method: 'POST', body: '{не json' }));
     expect(bad.status).toBe(204);
+  });
+
+  it('запрос со страницы чужого сайта — 403, в журнал попадает только предупреждение', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const response = await POST(
+      new Request('https://poravnu.test/api/log', {
+        method: 'POST',
+        headers: { 'sec-fetch-site': 'cross-site', origin: 'https://evil.example' },
+        body: JSON.stringify({ entries: [{ level: 'error', event: 'spam' }] }),
+      }),
+    );
+    expect(response.status).toBe(403);
+    expect(info).toHaveBeenCalledTimes(1);
+    expect(String(info.mock.calls[0]?.[0])).toContain('client_log.cross_site');
   });
 });
