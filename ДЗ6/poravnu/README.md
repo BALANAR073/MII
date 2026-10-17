@@ -2,12 +2,15 @@
 
 Веб-приложение для дележа общих расходов в компании: поездка, съёмная квартира, праздник. Участники записывают, кто за что заплатил и на кого делится расход. Приложение показывает балансы и минимальный список переводов «кто кому должен» — с точностью до копейки.
 
-Учебный проект по дисциплине «Методы искусственного интеллекта» (КАИ), ДЗ5 «Разработка Backend и интеграция с AI-агентом» (фронтенд — из ДЗ4). Выполнил: Творогов Д.Н., гр. 4481.
+Учебный проект по дисциплине «Методы искусственного интеллекта» (КАИ), ДЗ6 «Настройка CI/CD и интеграция сервисов» (фронтенд — из ДЗ4, бэкенд — из ДЗ5). Выполнил: Творогов Д.Н., гр. 4481.
+
+**Сайт: https://poravnu.vercel.app** · выкладка из `main` через GitHub Actions после всех проверок.
 
 - Требования: [`../../ДЗ3/technical_specification.md`](../../ДЗ3/technical_specification.md) (ТЗ 1.2), истории и критерии приёмки: [`../../ДЗ3/user_stories.md`](../../ДЗ3/user_stories.md).
 - Макет: концепция 1 «Минимализм» из [`../../ДЗ3/ui_concepts/ui_description.md`](../../ДЗ3/ui_concepts/ui_description.md), плюс блок «Кто кому должен» из концепции 2 и десктопная раскладка из концепции 3.
-- Бэкенд: [`../backend_documentation.md`](../backend_documentation.md) — архитектура, развёртывание, API с примерами запросов.
-- Проектирование БД: [`../db_design.md`](../db_design.md).
+- **ДЗ6:** [`../integration_documentation.md`](../integration_documentation.md) — CI/CD, OAuth, Метрика, мониторинг, логи, примеры конфигураций; [`../security_audit.md`](../security_audit.md) — аудит безопасности; [`../deployment.md`](../deployment.md), [`../monitoring_logging.md`](../monitoring_logging.md).
+- Бэкенд: [`../../ДЗ5/backend_documentation.md`](../../ДЗ5/backend_documentation.md) — архитектура, развёртывание, API с примерами запросов.
+- Проектирование БД: [`../../ДЗ5/db_design.md`](../../ДЗ5/db_design.md).
 
 ## Что умеет
 
@@ -28,7 +31,7 @@
 
 | Функция бэкенда | Требования ТЗ |
 |---|---|
-| Регистрация и вход, защищённые адреса | FR-1.1–1.3 |
+| Регистрация и вход, защищённые адреса; вход через Google (ДЗ6) | FR-1.1–1.3 |
 | Вступление по ссылке-приглашению с превью для гостя | FR-2.3, ERR-8 |
 | Выход только при нулевом балансе — проверяет база | AC-11.2 |
 | Данные группы видят только её участники | NFR-4 |
@@ -42,7 +45,7 @@ React 18, TypeScript 5 (strict), Vite, Tailwind CSS 3, React Router 6, `@supabas
 Нужен Node.js 20 или новее.
 
 ```bash
-cd ДЗ5/poravnu
+cd ДЗ6/poravnu
 npm install
 copy .env.example .env.local   # Windows; в Linux/macOS — cp
 ```
@@ -53,7 +56,7 @@ copy .env.example .env.local   # Windows; в Linux/macOS — cp
 npm run dev        # http://localhost:5173
 ```
 
-Новая база разворачивается один раз: Supabase → SQL Editor → выполнить `supabase/deploy.sql` (все миграции одним файлом). Подробно — в [`../backend_documentation.md`](../backend_documentation.md).
+Новая база разворачивается один раз: Supabase → SQL Editor → выполнить `supabase/deploy.sql` (все миграции одним файлом). Подробно — в [`../../ДЗ5/backend_documentation.md`](../../ДЗ5/backend_documentation.md).
 
 **Демо-вход** (учебный проект `itppbtrmsbpreraaecqe`): `borya.poravnu.demo@example.com` / `Demo-pass-2026`, группа «Поездка в Казань». Есть ещё `anya.`, `vika.`, `gosha.` — с тем же паролем. Пересоздать демо-данные: `npm run seed:demo`.
 
@@ -63,7 +66,9 @@ npm run dev        # http://localhost:5173
 
 | Команда | Что делает |
 |---|---|
-| `npm test` | все автотесты (202 теста, 21 файл), включая 36 тестов БД на PGlite |
+| `npm test` | все автотесты (237 тестов), включая 36 тестов БД на PGlite и функции `api/` |
+| `npm run lint` | ESLint: правила `CLAUDE.md`, хуки React, доступность |
+| `npm run format` / `format:check` | Prettier: отформатировать / проверить |
 | `npm run test:e2e` | 34 проверки API на живом Supabase (нужен `.env.local`) |
 | `npm run seed:demo` | создать демо-аккаунты и группу «Поездка в Казань» |
 | `npm run typecheck` | проверка типов TypeScript |
@@ -90,28 +95,29 @@ npm run dev        # http://localhost:5173
 src/
   api/          клиент Supabase: запросы, типы БД, перевод ошибок в понятные тексты; выбор Supabase / mock
   app/          роутинг, вход (AuthProvider, RequireAuth), каркас, общие хуки (useResource, useMutation, useMediaQuery)
-  pages/        экраны: вход и регистрация, приглашение, GroupsPage, GroupPage, HistoryPage
+  pages/        экраны: вход и регистрация (+ Google), возврат OAuth, приглашение, GroupsPage, GroupPage, HistoryPage, политика конфиденциальности
   features/
     balances/   расчёт балансов и переводов (чистые функции) и их UI
     expenses/   форма и лента расходов, валидация, оптимистичное добавление, отложенное удаление
     groups/     список групп, шапка группы, создание группы
     transfers/  отметка перевода
   components/ui переиспользуемые компоненты: Button, Dialog, Toast, Skeleton, Avatar…
-  lib/          деньги (formatRub, parseRubToKop), деление, русские падежи, даты, журнал (logger)
+  lib/          деньги (formatRub, parseRubToKop), деление, русские падежи, даты, журнал (logger), Яндекс.Метрика, safeNext
   mocks/        mock-API и mock-вход для тестов и демо
 supabase/
   migrations/   5 SQL-миграций: схема, функции и триггеры, RPC, RLS и права, исправления по AI-ревью
   deploy.sql    все миграции одним файлом — для новой базы
   tests/        тесты БД на PGlite (PostgreSQL в WebAssembly)
-scripts/        e2e-проверка API и заполнение демо-данных
   types/        типы предметной области и контракт API
+api/            функции Vercel: GET /api/health (Auth + БД), POST /api/log (ошибки браузера → JSON-логи)
+scripts/        e2e-проверка API и заполнение демо-данных
 ```
 
 Бизнес-логика (деление, балансы, переводы) — только в чистых функциях без React, компоненты получают данные через хуки. Правила кода для AI-агента — в [`CLAUDE.md`](CLAUDE.md) (22 правила из ДЗ2 и ссылка на требования).
 
 ## Тесты
 
-202 теста в 21 файле:
+237 тестов:
 
 - **расчёты:** деньги и разбор суммы, деление по долям, балансы, переводы «кто кому должен», тексты балансов, падежи, производительность (50 участников и 1000 расходов быстрее 50 мс);
 - **хуки и компоненты:** загрузка данных (`useResource`), модальное окно (фокус, Esc), форма расхода, отложенное удаление на фейковых таймерах;
@@ -119,8 +125,9 @@ scripts/        e2e-проверка API и заполнение демо-дан
 - **доступность:** axe-core (`vitest-axe`) на экранах «Мои группы», «Группа» и в форме расхода.
 
 - **база данных** (36): ограничения, триггеры, RLS для гостя, участника, постороннего и вышедшего, RPC, совпадение расчёта долей в SQL и TypeScript;
-- **API-клиент**: перевод кодов ошибок Supabase в тексты ТЗ, экран входа.
+- **API-клиент**: перевод кодов ошибок Supabase в тексты ТЗ, экран входа, вход через Google;
+- **ДЗ6**: health check (Auth, БД, таймауты), приём логов (белый список полей, очистка email и токенов, защита от чужих сайтов), Метрика, защита адреса возврата от open redirect, политика конфиденциальности.
 
-Отдельно `npm run test:e2e` проверяет живой проект: 34 запроса — CRUD, RLS, RPC, ошибки, CORS ([`../api_tests/e2e_results.md`](../api_tests/e2e_results.md)).
+Отдельно `npm run test:e2e` проверяет живой проект: 34 запроса — CRUD, RLS, RPC, ошибки, CORS ([`../../ДЗ5/api_tests/e2e_results.md`](../../ДЗ5/api_tests/e2e_results.md)).
 
 Названия тестов ссылаются на критерии приёмки из ДЗ3 (`AC-04.2`, `AC-08.3` и т. д.).
