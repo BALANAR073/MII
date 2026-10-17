@@ -1,0 +1,52 @@
+src/app/useResource.ts:28:3 [react-hooks/refs] Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/home/runner/work/MII/MII/ДЗ6/poravnu/src/app/useResource.ts:28:3
+  26 |   const [refreshFailed, setRefreshFailed] = useState(false);
+  27 |   const loaderRef = useRef(loader);
+> 28 |   loaderRef.current = loader;
+     |   ^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  29 |   const requestRef = useRef(0);
+  30 |   const hasDataRef = useRef(false);
+  31 |
+src/app/useResource.ts:62:5 [react-hooks/set-state-in-effect] Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/home/runner/work/MII/MII/ДЗ6/poravnu/src/app/useResource.ts:62:5
+  60 |   useEffect(() => {
+  61 |     hasDataRef.current = false;
+> 62 |     load(false);
+     |     ^^^^ Avoid calling setState() directly within an effect
+  63 |   }, [key, load]);
+  64 |
+  65 |   useEffect(() => {
+src/components/ui/Dialog.tsx:24:3 [react-hooks/refs] Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/home/runner/work/MII/MII/ДЗ6/poravnu/src/components/ui/Dialog.tsx:24:3
+  22 |   const panelRef = useRef<HTMLDivElement>(null);
+  23 |   const onCloseRef = useRef(onClose);
+> 24 |   onCloseRef.current = onClose;
+     |   ^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  25 |
+  26 |   useEffect(() => {
+  27 |     const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+src/features/expenses/useDeferredDelete.ts:36:3 [react-hooks/refs] Error: Cannot access refs during render
+
+React refs are values that are not needed for rendering. Refs should only be accessed outside of render, such as in event handlers or effects. Accessing a ref value (the `current` property) during render can cause your component not to update as expected (https://react.dev/reference/react/useRef).
+
+/home/runner/work/MII/MII/ДЗ6/poravnu/src/features/expenses/useDeferredDelete.ts:36:3
+  34 |   const pendingRef = useRef(new Map<string, PendingDelete>());
+  35 |   const onDeletedRef = useRef(onDeleted);
+> 36 |   onDeletedRef.current = onDeleted;
+     |   ^^^^^^^^^^^^^^^^^^^^ Cannot update ref during render
+  37 |   const { showToast, dismissToast } = useToast();
+  38 |
+  39 |   const setHidden = useCallback((id: string, hidden: boolean) => {

@@ -7,8 +7,8 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-type ProfileRow = { id: string; email: string; name: string; created_at: string };
-type GroupRow = {
+interface ProfileRow { id: string; email: string; name: string; created_at: string }
+interface GroupRow {
   id: string;
   name: string;
   emoji: string;
@@ -16,9 +16,9 @@ type GroupRow = {
   invite_token: string;
   hidden_at: string | null;
   created_at: string;
-};
-type MemberRow = { group_id: string; user_id: string; joined_at: string; left_at: string | null };
-type ExpenseRow = {
+}
+interface MemberRow { group_id: string; user_id: string; joined_at: string; left_at: string | null }
+interface ExpenseRow {
   id: string;
   group_id: string;
   title: string;
@@ -30,8 +30,8 @@ type ExpenseRow = {
   created_by: string;
   created_at: string;
   updated_at: string;
-};
-type TransferRow = {
+}
+interface TransferRow {
   id: string;
   group_id: string;
   from_id: string;
@@ -39,9 +39,9 @@ type TransferRow = {
   amount_kop: number;
   created_by: string;
   created_at: string;
-};
+}
 
-export type Database = {
+export interface Database {
   public: {
     Tables: {
       profiles: {
@@ -90,7 +90,7 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: { [_ in never]: never };
+    Views: Record<never, never>;
     Functions: {
       create_group: { Args: { p_name: string; p_emoji?: string }; Returns: GroupRow };
       get_invite_preview: {
@@ -113,7 +113,7 @@ export type Database = {
       };
       group_balances: { Args: { p_group: string }; Returns: { member_id: string; balance_kop: number }[] };
     };
-    Enums: { [_ in never]: never };
-    CompositeTypes: { [_ in never]: never };
+    Enums: Record<never, never>;
+    CompositeTypes: Record<never, never>;
   };
-};
+}

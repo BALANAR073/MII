@@ -15,7 +15,11 @@ const TABS: readonly GroupTab[] = ['expenses', 'balances'];
 /** Вкладки «Расходы | Балансы» на телефоне и планшете (концепция 1); на десктопе обе части видны сразу. */
 export function GroupTabs({ value, onChange }: GroupTabsProps) {
   return (
-    <div role="tablist" aria-label="Разделы группы" className="sticky top-14 z-10 flex border-b border-slate-200 bg-white px-4 sm:rounded-xl lg:hidden">
+    <div
+      role="tablist"
+      aria-label="Разделы группы"
+      className="sticky top-14 z-10 flex border-b border-slate-200 bg-white px-4 sm:rounded-xl lg:hidden"
+    >
       {TABS.map((tab) => (
         <button
           key={tab}

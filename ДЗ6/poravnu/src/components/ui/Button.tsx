@@ -20,7 +20,16 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 };
 
 /** Кнопка с вариантами оформления и состоянием ожидания. */
-export function Button({ variant = 'primary', pending = false, className, children, disabled, type = 'button', onClick, ...rest }: ButtonProps) {
+export function Button({
+  variant = 'primary',
+  pending = false,
+  className,
+  children,
+  disabled,
+  type = 'button',
+  onClick,
+  ...rest
+}: ButtonProps) {
   return (
     <button
       type={type}

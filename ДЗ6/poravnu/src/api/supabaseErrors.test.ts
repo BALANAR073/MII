@@ -44,7 +44,10 @@ describe('fromAuthError — ответы Supabase Auth', () => {
 describe('parseSplit — split из jsonb', () => {
   it('принимает оба способа деления', () => {
     expect(parseSplit({ kind: 'equal', memberIds: ['a', 'b'] })).toEqual({ kind: 'equal', memberIds: ['a', 'b'] });
-    expect(parseSplit({ kind: 'shares', shares: [{ memberId: 'a', weight: 2 }] })).toEqual({ kind: 'shares', shares: [{ memberId: 'a', weight: 2 }] });
+    expect(parseSplit({ kind: 'shares', shares: [{ memberId: 'a', weight: 2 }] })).toEqual({
+      kind: 'shares',
+      shares: [{ memberId: 'a', weight: 2 }],
+    });
   });
 
   it('не доверяет неожиданному формату', () => {

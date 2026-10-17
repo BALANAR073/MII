@@ -13,9 +13,7 @@ const MINUS = '\u2212';
 const GROUPED_AMOUNT = /^\d{1,3}( \d{3})+([.,]\d{1,2})?$/;
 const PLAIN_AMOUNT = /^\d+([.,]\d{1,2})?$/;
 
-export type ParseAmountResult =
-  | { ok: true; amountKop: Kopecks }
-  | { ok: false; error: 'invalid' | 'too-large' };
+export type ParseAmountResult = { ok: true; amountKop: Kopecks } | { ok: false; error: 'invalid' | 'too-large' };
 
 /**
  * Форматирует сумму в копейках: 150000 → «1 500,00 ₽», −94075 → «−940,75 ₽».

@@ -54,14 +54,31 @@ function createDataApi(client: Client): DataApi {
       const [group, members, expenses, transfers] = await Promise.all([
         runMaybe('group.get', client.from('groups').select('*').eq('id', groupId).maybeSingle()),
         run('members.list', client.from('members').select('*').eq('group_id', groupId).order('joined_at').order('user_id')),
-        run('expenses.list', client.from('expenses').select('*').eq('group_id', groupId).order('date', { ascending: false }).order('created_at', { ascending: false })),
+        run(
+          'expenses.list',
+          client
+            .from('expenses')
+            .select('*')
+            .eq('group_id', groupId)
+            .order('date', { ascending: false })
+            .order('created_at', { ascending: false }),
+        ),
         run('transfers.list', client.from('transfers').select('*').eq('group_id', groupId).order('created_at', { ascending: false })),
       ]);
       if (group === null) {
         // RLS скрывает чужую группу так же, как несуществующую: 0 строк, без ошибки.
         throw logged('group.get', new ApiError('not-found', 'Группа не найдена или недоступна'), 404);
       }
-      const profiles = await run('profiles.list', client.from('profiles').select('id, name').in('id', members.map((member) => member.user_id)));
+      const profiles = await run(
+        'profiles.list',
+        client
+          .from('profiles')
+          .select('id, name')
+          .in(
+            'id',
+            members.map((member) => member.user_id),
+          ),
+      );
       const nameById = new Map(profiles.map((profile) => [profile.id, profile.name]));
       const memberList: Member[] = members.map((member) => ({
         id: member.user_id,
@@ -83,10 +100,22 @@ function createDataApi(client: Client): DataApi {
     },
 
     addExpense: async (groupId, input) =>
-      toExpense(await run('expenses.insert', client.from('expenses').insert({ group_id: groupId, ...toExpenseColumns(input) }).select().single())),
+      toExpense(
+        await run(
+          'expenses.insert',
+          client
+            .from('expenses')
+            .insert({ group_id: groupId, ...toExpenseColumns(input) })
+            .select()
+            .single(),
+        ),
+      ),
 
     updateExpense: async (groupId, expenseId, input) => {
-      const rows = await run('expenses.update', client.from('expenses').update(toExpenseColumns(input)).eq('id', expenseId).eq('group_id', groupId).select());
+      const rows = await run(
+        'expenses.update',
+        client.from('expenses').update(toExpenseColumns(input)).eq('id', expenseId).eq('group_id', groupId).select(),
+      );
       const [row] = rows;
       if (row === undefined) {
         throw await explainEmptyWrite(client, 'expenses', expenseId, 'Этот расход уже удалён', 'Изменять можно только свои расходы');
@@ -105,12 +134,19 @@ function createDataApi(client: Client): DataApi {
       toTransfer(
         await run(
           'transfers.insert',
-          client.from('transfers').insert({ group_id: groupId, from_id: input.fromId, to_id: input.toId, amount_kop: input.amountKop }).select().single(),
+          client
+            .from('transfers')
+            .insert({ group_id: groupId, from_id: input.fromId, to_id: input.toId, amount_kop: input.amountKop })
+            .select()
+            .single(),
         ),
       ),
 
     deleteTransfer: async (groupId, transferId) => {
-      const rows = await run('transfers.delete', client.from('transfers').delete().eq('id', transferId).eq('group_id', groupId).select('id'));
+      const rows = await run(
+        'transfers.delete',
+        client.from('transfers').delete().eq('id', transferId).eq('group_id', groupId).select('id'),
+      );
       if (rows.length === 0) {
         throw await explainEmptyWrite(client, 'transfers', transferId, 'Перевод уже удалён', 'Удалить перевод может только его автор');
       }
@@ -250,9 +286,17 @@ async function runVoid(op: string, query: PromiseLike<QueryResult<unknown>>): Pr
  * RLS не сообщает, почему UPDATE/DELETE не затронул строк: запись удалена или она чужая.
  * Различаем повторным чтением: не видна — удалена (ERR-10), видна — нет прав (ERR-7).
  */
-async function explainEmptyWrite(client: Client, table: 'expenses' | 'transfers', id: string, goneText: string, forbiddenText: string): Promise<ApiError> {
+async function explainEmptyWrite(
+  client: Client,
+  table: 'expenses' | 'transfers',
+  id: string,
+  goneText: string,
+  forbiddenText: string,
+): Promise<ApiError> {
   const visible = await runMaybe(`${table}.exists`, client.from(table).select('id').eq('id', id).maybeSingle());
-  return visible === null ? logged(table, new ApiError('conflict', goneText), 409) : logged(table, new ApiError('forbidden', forbiddenText), 403);
+  return visible === null
+    ? logged(table, new ApiError('conflict', goneText), 409)
+    : logged(table, new ApiError('forbidden', forbiddenText), 403);
 }
 
 function logged(op: string, error: ApiError, status: number, code?: string): ApiError {
@@ -288,7 +332,15 @@ function userFromSupabase(user: User): AuthUser {
 }
 
 function toGroup(row: GroupRow, members: Member[]): Group {
-  return { id: row.id, name: row.name, emoji: row.emoji, ownerId: row.owner_id, inviteToken: row.invite_token, members, createdAt: row.created_at };
+  return {
+    id: row.id,
+    name: row.name,
+    emoji: row.emoji,
+    ownerId: row.owner_id,
+    inviteToken: row.invite_token,
+    members,
+    createdAt: row.created_at,
+  };
 }
 
 function toExpense(row: ExpenseRow): Expense {
@@ -341,7 +393,11 @@ export function parseSplit(value: Json): ExpenseSplit {
     }
     if (kind === 'shares' && Array.isArray(shares)) {
       const parsed = shares.flatMap((share) =>
-        typeof share === 'object' && share !== null && !Array.isArray(share) && typeof share.memberId === 'string' && typeof share.weight === 'number'
+        typeof share === 'object' &&
+        share !== null &&
+        !Array.isArray(share) &&
+        typeof share.memberId === 'string' &&
+        typeof share.weight === 'number'
           ? [{ memberId: share.memberId, weight: share.weight }]
           : [],
       );

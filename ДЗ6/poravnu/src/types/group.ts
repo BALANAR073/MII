@@ -17,9 +17,7 @@ export interface WeightedShare {
 }
 
 /** Способ деления расхода: поровну между выбранными или по целым долям (FR-3.4). */
-export type ExpenseSplit =
-  | { kind: 'equal'; memberIds: MemberId[] }
-  | { kind: 'shares'; shares: WeightedShare[] };
+export type ExpenseSplit = { kind: 'equal'; memberIds: MemberId[] } | { kind: 'shares'; shares: WeightedShare[] };
 
 export interface Expense {
   id: string;

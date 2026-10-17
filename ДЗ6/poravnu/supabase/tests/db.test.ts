@@ -35,7 +35,9 @@ async function seedKazan(t: TestDb): Promise<Kazan> {
   const gosha = await t.createUser('Гоша');
 
   await t.asUser(anya);
-  const group = await t.db.query<{ id: string; invite_token: string }>(`select id, invite_token from public.create_group('Поездка в Казань', '🏙')`);
+  const group = await t.db.query<{ id: string; invite_token: string }>(
+    `select id, invite_token from public.create_group('Поездка в Казань', '🏙')`,
+  );
   const groupId = group.rows[0]?.id ?? '';
   const token = group.rows[0]?.invite_token ?? '';
   for (const user of [borya, vika, gosha]) {
@@ -68,7 +70,9 @@ async function insertExpense(t: TestDb, as: string, groupId: string, title: stri
 
 async function balances(t: TestDb, as: string, groupId: string): Promise<Record<string, number>> {
   await t.asUser(as);
-  const result = await t.db.query<{ member_id: string; balance_kop: string | number }>(`select * from public.group_balances($1)`, [groupId]);
+  const result = await t.db.query<{ member_id: string; balance_kop: string | number }>(`select * from public.group_balances($1)`, [
+    groupId,
+  ]);
   return Object.fromEntries(result.rows.map((row) => [row.member_id, Number(row.balance_kop)]));
 }
 
@@ -132,12 +136,10 @@ describe('Row Level Security (ТЗ, раздел 3.1)', () => {
   it('нельзя добавить расход от чужого имени', async () => {
     await k.t.asUser(k.borya);
     await expectSqlError(
-      k.t.db.query(`insert into public.expenses (group_id, title, amount_kop, payer_id, split, created_by) values ($1, 'x', 100, $2, $3, $4)`, [
-        k.groupId,
-        k.borya,
-        JSON.stringify({ kind: 'equal', memberIds: [k.borya] }),
-        k.anya,
-      ]),
+      k.t.db.query(
+        `insert into public.expenses (group_id, title, amount_kop, payer_id, split, created_by) values ($1, 'x', 100, $2, $3, $4)`,
+        [k.groupId, k.borya, JSON.stringify({ kind: 'equal', memberIds: [k.borya] }), k.anya],
+      ),
       '42501',
     );
   });
@@ -160,7 +162,11 @@ describe('Row Level Security (ТЗ, раздел 3.1)', () => {
   it('перевод отмечает только его участник (AC-08.2)', async () => {
     await k.t.asUser(k.borya);
     await expectSqlError(
-      k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 100)`, [k.groupId, k.vika, k.anya]),
+      k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 100)`, [
+        k.groupId,
+        k.vika,
+        k.anya,
+      ]),
       '42501',
     );
     const ok = await k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 94075)`, [
@@ -215,7 +221,8 @@ describe('расчёт долей и балансов в SQL совпадает 
     const b = await t.createUser('Б');
     const c = await t.createUser('В');
     await t.asUser(a);
-    const token = (await t.db.query<{ invite_token: string }>(`select invite_token from public.create_group('Тест')`)).rows[0]?.invite_token;
+    const token = (await t.db.query<{ invite_token: string }>(`select invite_token from public.create_group('Тест')`)).rows[0]
+      ?.invite_token;
     for (const user of [b, c]) {
       await t.asUser(user);
       await t.db.query(`select public.join_group($1)`, [token]);
@@ -226,7 +233,11 @@ describe('расчёт долей и балансов в SQL совпадает 
       `select * from private.expense_shares($1, 100000, $2::jsonb)`,
       [groupId, JSON.stringify({ kind: 'equal', memberIds: [c, b, a] })],
     );
-    expect(Object.fromEntries(direct.rows.map((row) => [row.member_id, Number(row.share_kop)]))).toEqual({ [a]: 33_334, [b]: 33_333, [c]: 33_333 });
+    expect(Object.fromEntries(direct.rows.map((row) => [row.member_id, Number(row.share_kop)]))).toEqual({
+      [a]: 33_334,
+      [b]: 33_333,
+      [c]: 33_333,
+    });
   });
 
   it('на 60 случайных расходах балансы SQL и TypeScript совпадают до копейки', async () => {
@@ -237,7 +248,8 @@ describe('расчёт долей и балансов в SQL совпадает 
       ids.push(await t.createUser(name));
     }
     await t.asUser(ids[0] ?? '');
-    const group = (await t.db.query<{ id: string; invite_token: string }>(`select id, invite_token from public.create_group('Случайная')`)).rows[0];
+    const group = (await t.db.query<{ id: string; invite_token: string }>(`select id, invite_token from public.create_group('Случайная')`))
+      .rows[0];
     const groupId = group?.id ?? '';
     // Вступают в обратном порядке, чтобы порядок группы не совпадал с порядком id.
     for (const id of [...ids.slice(1)].reverse()) {
@@ -250,7 +262,7 @@ describe('расчёт долей и балансов в SQL совпадает 
       seed = (seed * 1_103_515_245 + 12_345) % 2_147_483_648;
       return seed / 2_147_483_648;
     };
-    const pick = <T,>(items: readonly T[]): T => items[Math.floor(random() * items.length)] as T;
+    const pick = <T>(items: readonly T[]): T => items[Math.floor(random() * items.length)] as T;
     for (let index = 0; index < 60; index += 1) {
       const participants = ids.filter(() => random() > 0.35);
       const members = participants.length > 0 ? participants : [pick(ids)];
@@ -271,7 +283,12 @@ describe('расчёт долей и балансов в SQL совпадает 
       `select id, amount_kop, payer_id, split from public.expenses where group_id = $1`,
       [groupId],
     );
-    const members: Member[] = memberRows.rows.map((row) => ({ id: row.user_id, name: row.user_id, joinedAt: row.joined_at.toISOString(), leftAt: null }));
+    const members: Member[] = memberRows.rows.map((row) => ({
+      id: row.user_id,
+      name: row.user_id,
+      joinedAt: row.joined_at.toISOString(),
+      leftAt: null,
+    }));
     const expenses: Expense[] = expenseRows.rows.map((row) => ({
       id: row.id,
       groupId,
@@ -283,7 +300,9 @@ describe('расчёт долей и балансов в SQL совпадает 
       createdBy: row.payer_id,
       createdAt: '',
     }));
-    const tsBalances = Object.fromEntries(calculateBalances({ members, expenses, transfers: [] }).map((item) => [item.memberId, item.balanceKop]));
+    const tsBalances = Object.fromEntries(
+      calculateBalances({ members, expenses, transfers: [] }).map((item) => [item.memberId, item.balanceKop]),
+    );
 
     const sqlBalances = await balances(t, ids[0] ?? '', groupId);
     expect(sqlBalances).toEqual(tsBalances);
@@ -319,7 +338,11 @@ describe('RPC: приглашения, выход, «Мои группы»', () 
   it('выйти с долгом нельзя, в расчёте — можно; вернуться можно по ссылке (AC-11.1, AC-11.2, Q5)', async () => {
     await k.t.asUser(k.borya);
     await expectSqlError(k.t.db.query(`select public.leave_group($1)`, [k.groupId]), 'PT409', 'balance_not_zero');
-    await k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 94075)`, [k.groupId, k.borya, k.anya]);
+    await k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 94075)`, [
+      k.groupId,
+      k.borya,
+      k.anya,
+    ]);
     await k.t.db.query(`select public.leave_group($1)`, [k.groupId]);
     expect((await k.t.db.query(`select * from public.expenses`)).rows).toHaveLength(0);
 
@@ -332,7 +355,8 @@ describe('RPC: приглашения, выход, «Мои группы»', () 
     const a = await t.createUser('А');
     const b = await t.createUser('Б');
     await t.asUser(a);
-    const group = (await t.db.query<{ id: string; invite_token: string }>(`select id, invite_token from public.create_group('Пустая')`)).rows[0];
+    const group = (await t.db.query<{ id: string; invite_token: string }>(`select id, invite_token from public.create_group('Пустая')`))
+      .rows[0];
     await t.asUser(b);
     await t.db.query(`select public.join_group($1)`, [group?.invite_token]);
     await t.asUser(a);
@@ -381,7 +405,11 @@ describe('исправления по AI-ревью схемы (миграция
   /** Вика рассчитывается с Аней и выходит из группы. */
   async function vikaLeaves(): Promise<void> {
     await k.t.asUser(k.vika);
-    await k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 319753)`, [k.groupId, k.vika, k.anya]);
+    await k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 319753)`, [
+      k.groupId,
+      k.vika,
+      k.anya,
+    ]);
     await k.t.db.query(`select public.leave_group($1)`, [k.groupId]);
   }
 
@@ -389,7 +417,11 @@ describe('исправления по AI-ревью схемы (миграция
     // Аня вносит подарок, за который платила Вика; сама Вика в делении не участвует.
     await insertExpense(k.t, k.anya, k.groupId, 'Подарок', 2_000, k.vika, { kind: 'equal', memberIds: [k.anya, k.borya] });
     await k.t.asUser(k.vika);
-    await k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 317753)`, [k.groupId, k.vika, k.anya]);
+    await k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 317753)`, [
+      k.groupId,
+      k.vika,
+      k.anya,
+    ]);
     await k.t.db.query(`select public.leave_group($1)`, [k.groupId]);
     await k.t.asUser(k.anya);
     expect((await k.t.db.query(`update public.expenses set amount_kop = 1 where title = 'Подарок'`)).affectedRows).toBe(0);
@@ -413,7 +445,11 @@ describe('исправления по AI-ревью схемы (миграция
     );
     await k.t.asUser(k.anya);
     await expectSqlError(
-      k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 100)`, [k.groupId, k.anya, k.vika]),
+      k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 100)`, [
+        k.groupId,
+        k.anya,
+        k.vika,
+      ]),
       '23514',
       'inactive_member',
     );
@@ -428,15 +464,18 @@ describe('исправления по AI-ревью схемы (миграция
   it('6: при вставке нельзя подменить created_at и id', async () => {
     await k.t.asUser(k.borya);
     await expectSqlError(
-      k.t.db.query(`insert into public.expenses (group_id, title, amount_kop, payer_id, split, created_at) values ($1, 'x', 100, $2, $3, '2000-01-01')`, [
-        k.groupId,
-        k.borya,
-        JSON.stringify({ kind: 'equal', memberIds: [k.borya] }),
-      ]),
+      k.t.db.query(
+        `insert into public.expenses (group_id, title, amount_kop, payer_id, split, created_at) values ($1, 'x', 100, $2, $3, '2000-01-01')`,
+        [k.groupId, k.borya, JSON.stringify({ kind: 'equal', memberIds: [k.borya] })],
+      ),
       '42501',
     );
     await expectSqlError(
-      k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop, created_at) values ($1, $2, $3, 1, '2000-01-01')`, [k.groupId, k.borya, k.anya]),
+      k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop, created_at) values ($1, $2, $3, 1, '2000-01-01')`, [
+        k.groupId,
+        k.borya,
+        k.anya,
+      ]),
       '42501',
     );
   });
@@ -476,11 +515,10 @@ describe('исправления по AI-ревью схемы (миграция
   it('12: дата расхода — в разумных пределах', async () => {
     await k.t.asUser(k.anya);
     await expectSqlError(
-      k.t.db.query(`insert into public.expenses (group_id, title, amount_kop, payer_id, split, date) values ($1, 'Старое', 100, $2, $3, '1999-12-31')`, [
-        k.groupId,
-        k.anya,
-        JSON.stringify({ kind: 'equal', memberIds: [k.anya] }),
-      ]),
+      k.t.db.query(
+        `insert into public.expenses (group_id, title, amount_kop, payer_id, split, date) values ($1, 'Старое', 100, $2, $3, '1999-12-31')`,
+        [k.groupId, k.anya, JSON.stringify({ kind: 'equal', memberIds: [k.anya] })],
+      ),
       '23514',
       'invalid_date',
     );
@@ -494,7 +532,8 @@ describe('исправления по AI-ревью схемы (миграция
     const t = await createTestDb();
     const a = await t.createUser('А');
     await t.asUser(a);
-    const group = (await t.db.query<{ id: string; invite_token: string }>(`select id, invite_token from public.create_group('Одна')`)).rows[0];
+    const group = (await t.db.query<{ id: string; invite_token: string }>(`select id, invite_token from public.create_group('Одна')`))
+      .rows[0];
     await t.db.query(`select public.leave_group($1)`, [group?.id]);
     await expectSqlError(t.db.query(`select public.rotate_invite($1)`, [group?.id]), 'PT403');
     await expectSqlError(t.db.query(`select public.join_group($1)`, [group?.invite_token]), 'PT404', 'invalid_invite');
@@ -504,26 +543,53 @@ describe('исправления по AI-ревью схемы (миграция
   it('16: балансы SQL и TypeScript совпадают и с переводами, и с вышедшим участником', async () => {
     await vikaLeaves();
     await k.t.asUser(k.borya);
-    await k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 50000)`, [k.groupId, k.borya, k.anya]);
+    await k.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 50000)`, [
+      k.groupId,
+      k.borya,
+      k.anya,
+    ]);
     await k.t.asAdmin();
     const members = (
       await k.t.db.query<{ user_id: string; joined_at: Date; left_at: Date | null }>(
         `select user_id, joined_at, left_at from public.members where group_id = $1 order by joined_at, user_id`,
         [k.groupId],
       )
-    ).rows.map((row) => ({ id: row.user_id, name: row.user_id, joinedAt: row.joined_at.toISOString(), leftAt: row.left_at?.toISOString() ?? null }));
+    ).rows.map((row) => ({
+      id: row.user_id,
+      name: row.user_id,
+      joinedAt: row.joined_at.toISOString(),
+      leftAt: row.left_at?.toISOString() ?? null,
+    }));
     const expenses = (
       await k.t.db.query<{ id: string; amount_kop: string | number; payer_id: string; split: ExpenseSplit }>(
         `select id, amount_kop, payer_id, split from public.expenses where group_id = $1`,
         [k.groupId],
       )
-    ).rows.map((row) => ({ id: row.id, groupId: k.groupId, title: '', amountKop: Number(row.amount_kop), payerId: row.payer_id, split: row.split, date: '', createdBy: row.payer_id, createdAt: '' }));
+    ).rows.map((row) => ({
+      id: row.id,
+      groupId: k.groupId,
+      title: '',
+      amountKop: Number(row.amount_kop),
+      payerId: row.payer_id,
+      split: row.split,
+      date: '',
+      createdBy: row.payer_id,
+      createdAt: '',
+    }));
     const transfers = (
       await k.t.db.query<{ id: string; from_id: string; to_id: string; amount_kop: string | number }>(
         `select id, from_id, to_id, amount_kop from public.transfers where group_id = $1`,
         [k.groupId],
       )
-    ).rows.map((row) => ({ id: row.id, groupId: k.groupId, fromId: row.from_id, toId: row.to_id, amountKop: Number(row.amount_kop), createdBy: row.from_id, createdAt: '' }));
+    ).rows.map((row) => ({
+      id: row.id,
+      groupId: k.groupId,
+      fromId: row.from_id,
+      toId: row.to_id,
+      amountKop: Number(row.amount_kop),
+      createdBy: row.from_id,
+      createdAt: '',
+    }));
     const ts = Object.fromEntries(calculateBalances({ members, expenses, transfers }).map((item) => [item.memberId, item.balanceKop]));
     expect(await balances(k.t, k.borya, k.groupId)).toEqual(ts);
     expect(ts[k.vika]).toBe(0);

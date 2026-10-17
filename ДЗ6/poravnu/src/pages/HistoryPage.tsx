@@ -29,14 +29,22 @@ export function HistoryPage() {
   return (
     <div className="mx-auto max-w-3xl pb-10">
       <div className="px-4 pb-4 pt-6 sm:px-0">
-        <Link to={`/groups/${groupId}`} className="inline-flex min-h-11 items-center text-sm font-medium text-slate-600 hover:text-slate-900">
+        <Link
+          to={`/groups/${groupId}`}
+          className="inline-flex min-h-11 items-center text-sm font-medium text-slate-600 hover:text-slate-900"
+        >
           ← К группе
         </Link>
         <h1 className="text-2xl font-semibold text-slate-900">История операций</h1>
       </div>
       {state.status === 'loading' && <SkeletonList rows={5} label="Загружаем историю…" />}
       {state.status === 'error' && (
-        <StatusMessage tone="error" title="Не удалось загрузить историю" description={apiErrorMessage(state.error, 'load')} action={<Button onClick={reload}>Повторить</Button>} />
+        <StatusMessage
+          tone="error"
+          title="Не удалось загрузить историю"
+          description={apiErrorMessage(state.error, 'load')}
+          action={<Button onClick={reload}>Повторить</Button>}
+        />
       )}
       {state.status === 'success' && <HistoryList details={state.data} />}
     </div>

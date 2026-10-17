@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export type ResourceState<T> =
-  | { status: 'loading' }
-  | { status: 'error'; error: unknown }
-  | { status: 'success'; data: T };
+export type ResourceState<T> = { status: 'loading' } | { status: 'error'; error: unknown } | { status: 'success'; data: T };
 
 interface ResourceResult<T> {
   state: ResourceState<T>;

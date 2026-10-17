@@ -21,7 +21,14 @@ interface BalancesPanelProps {
  * Вкладка «Балансы» на телефоне и правая панель на десктопе (FR-4.6):
  * итог расходов, балансы с полосками и «Кто кому должен». Вынесено из GroupPage при рефакторинге.
  */
-export function BalancesPanel({ members, settlement, expensesCount, currentUserId, highlightTransfers = false, onMarkTransfer }: BalancesPanelProps) {
+export function BalancesPanel({
+  members,
+  settlement,
+  expensesCount,
+  currentUserId,
+  highlightTransfers = false,
+  onMarkTransfer,
+}: BalancesPanelProps) {
   const activeCount = members.filter((member) => member.leftAt === null).length;
   return (
     <>

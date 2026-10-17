@@ -164,7 +164,12 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
                 }
               />
             ) : (
-              <ExpenseList expenses={visibleExpenses} members={group.members} currentUserId={currentUserId} pendingIds={optimistic.pendingIds} />
+              <ExpenseList
+                expenses={visibleExpenses}
+                members={group.members}
+                currentUserId={currentUserId}
+                pendingIds={optimistic.pendingIds}
+              />
             )}
           </section>
         </div>

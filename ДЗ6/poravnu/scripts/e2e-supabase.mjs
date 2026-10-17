@@ -99,20 +99,36 @@ const expenses = [
   [anya, 'Хостел', 1_200_000, all, '2026-10-10'],
   [borya, 'Продукты', 345_678, all, '2026-10-10'],
   [vika, 'Такси', 99_999, { kind: 'equal', memberIds: [borya.id, vika.id, gosha.id] }, '2026-10-11'],
-  [gosha, 'Кофе', 60_000, { kind: 'shares', shares: [{ memberId: borya.id, weight: 1 }, { memberId: gosha.id, weight: 2 }] }, '2026-10-12'],
+  [
+    gosha,
+    'Кофе',
+    60_000,
+    {
+      kind: 'shares',
+      shares: [
+        { memberId: borya.id, weight: 1 },
+        { memberId: gosha.id, weight: 2 },
+      ],
+    },
+    '2026-10-12',
+  ],
 ];
 let hostelId = '';
 for (const [payer, title, amount, split, date] of expenses) {
-  await check(`Создание расхода «${title}» (CREATE)`, 'POST /rest/v1/expenses {group_id, title, amount_kop, payer_id, split, date}', async () => {
-    const { data, error, status } = await payer.c
-      .from('expenses')
-      .insert({ group_id: groupId, title, amount_kop: amount, payer_id: payer.id, split, date })
-      .select()
-      .single();
-    expect(!error, error?.message);
-    if (title === 'Хостел') hostelId = data.id;
-    return `HTTP ${status}, created_by = автор (auth.uid())`;
-  });
+  await check(
+    `Создание расхода «${title}» (CREATE)`,
+    'POST /rest/v1/expenses {group_id, title, amount_kop, payer_id, split, date}',
+    async () => {
+      const { data, error, status } = await payer.c
+        .from('expenses')
+        .insert({ group_id: groupId, title, amount_kop: amount, payer_id: payer.id, split, date })
+        .select()
+        .single();
+      expect(!error, error?.message);
+      if (title === 'Хостел') hostelId = data.id;
+      return `HTTP ${status}, created_by = автор (auth.uid())`;
+    },
+  );
 }
 
 await check('Чтение группы участником (READ)', 'GET /rest/v1/expenses?group_id=eq.<id>&order=date.desc', async () => {
@@ -126,7 +142,11 @@ await check('Балансы как в AC-07.1 (RPC group_balances)', 'POST /rest
   expect(!error, error?.message);
   const byId = Object.fromEntries(data.map((row) => [row.member_id, Number(row.balance_kop)]));
   const expected = { [anya.id]: 813_580, [borya.id]: -94_075, [vika.id]: -319_753, [gosha.id]: -399_752 };
-  expect(JSON.stringify(byId) === JSON.stringify(Object.fromEntries(Object.keys(expected).map((id) => [id, byId[id]]))) && Object.entries(expected).every(([id, v]) => byId[id] === v), JSON.stringify(byId));
+  expect(
+    JSON.stringify(byId) === JSON.stringify(Object.fromEntries(Object.keys(expected).map((id) => [id, byId[id]]))) &&
+      Object.entries(expected).every(([id, v]) => byId[id] === v),
+    JSON.stringify(byId),
+  );
   return 'Аня +8 135,80 · Боря −940,75 · Вика −3 197,53 · Гоша −3 997,52 ₽ — сумма 0';
 });
 
@@ -144,7 +164,9 @@ if (!SEED_DEMO) {
   });
 
   await check('Неверные данные отклоняет база (CHECK, 23514)', 'POST /rest/v1/expenses {amount_kop: 0}', async () => {
-    const { error, status } = await borya.c.from('expenses').insert({ group_id: groupId, title: 'Ноль', amount_kop: 0, payer_id: borya.id, split: all });
+    const { error, status } = await borya.c
+      .from('expenses')
+      .insert({ group_id: groupId, title: 'Ноль', amount_kop: 0, payer_id: borya.id, split: all });
     expect(error?.code === '23514', `ожидался 23514, получено ${error?.code}`);
     return `HTTP ${status}, code ${error.code}`;
   });
@@ -167,7 +189,13 @@ if (!SEED_DEMO) {
   await check('Чужой пользователь не может добавить расход (RLS, 42501)', 'POST /rest/v1/expenses — от постороннего', async () => {
     const { error, status } = await stranger.c
       .from('expenses')
-      .insert({ group_id: groupId, title: 'Взлом', amount_kop: 100, payer_id: stranger.id, split: { kind: 'equal', memberIds: [stranger.id] } });
+      .insert({
+        group_id: groupId,
+        title: 'Взлом',
+        amount_kop: 100,
+        payer_id: stranger.id,
+        split: { kind: 'equal', memberIds: [stranger.id] },
+      });
     expect(error?.code === '42501', `ожидался 42501, получено ${error?.code}`);
     return `HTTP ${status}, code ${error.code}`;
   });
@@ -192,7 +220,10 @@ if (!SEED_DEMO) {
 
   await check('Выход с долгом запрещён (RPC leave_group, 409)', 'POST /rest/v1/rpc/leave_group {p_group} — от Бори', async () => {
     const { error, status } = await borya.c.rpc('leave_group', { p_group: groupId });
-    expect(status === 409 && error?.message === 'balance_not_zero' && error.details === '-94075', `${status} ${error?.message} ${error?.details}`);
+    expect(
+      status === 409 && error?.message === 'balance_not_zero' && error.details === '-94075',
+      `${status} ${error?.message} ${error?.details}`,
+    );
     return `HTTP ${status}, долг ${error.details} коп.`;
   });
 
@@ -209,7 +240,9 @@ if (!SEED_DEMO) {
   });
 
   await check('Перевод за других отметить нельзя (RLS)', 'POST /rest/v1/transfers {from: Вика, to: Аня} — от Бори', async () => {
-    const { error, status } = await borya.c.from('transfers').insert({ group_id: groupId, from_id: vika.id, to_id: anya.id, amount_kop: 100 });
+    const { error, status } = await borya.c
+      .from('transfers')
+      .insert({ group_id: groupId, from_id: vika.id, to_id: anya.id, amount_kop: 100 });
     expect(error?.code === '42501', `ожидался 42501, получено ${error?.code}`);
     return `HTTP ${status}, code ${error.code}`;
   });
@@ -238,13 +271,17 @@ if (!SEED_DEMO) {
     return `HTTP ${status}, code ${error.code}`;
   });
 
-  await check('Нельзя подменить created_at при вставке (права на колонки)', 'POST /rest/v1/transfers {created_at: "2000-01-01"}', async () => {
-    const { error, status } = await borya.c
-      .from('transfers')
-      .insert({ group_id: groupId, from_id: borya.id, to_id: anya.id, amount_kop: 1, created_at: '2000-01-01T00:00:00Z' });
-    expect(error?.code === '42501', `ожидался 42501, получено ${error?.code}`);
-    return `HTTP ${status}, code ${error.code}`;
-  });
+  await check(
+    'Нельзя подменить created_at при вставке (права на колонки)',
+    'POST /rest/v1/transfers {created_at: "2000-01-01"}',
+    async () => {
+      const { error, status } = await borya.c
+        .from('transfers')
+        .insert({ group_id: groupId, from_id: borya.id, to_id: anya.id, amount_kop: 1, created_at: '2000-01-01T00:00:00Z' });
+      expect(error?.code === '42501', `ожидался 42501, получено ${error?.code}`);
+      return `HTTP ${status}, code ${error.code}`;
+    },
+  );
 
   await check('Служебные функции не опубликованы в API (схема private)', 'POST /rest/v1/rpc/is_active_member', async () => {
     const { error, status } = await borya.c.rpc('is_active_member', { p_group: groupId });
@@ -260,15 +297,23 @@ if (!SEED_DEMO) {
     return `HTTP ${response.status}`;
   });
 
-  await check('CORS: preflight с чужого origin разрешён, защита — на RLS', 'OPTIONS /rest/v1/expenses, Origin: http://localhost:5173', async () => {
-    const response = await fetch(`${URL}/rest/v1/expenses`, {
-      method: 'OPTIONS',
-      headers: { Origin: 'http://localhost:5173', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'apikey,authorization,content-type' },
-    });
-    const allow = response.headers.get('access-control-allow-origin');
-    expect(response.ok && allow !== null, `HTTP ${response.status}, allow-origin ${allow}`);
-    return `HTTP ${response.status}, Access-Control-Allow-Origin: ${allow}`;
-  });
+  await check(
+    'CORS: preflight с чужого origin разрешён, защита — на RLS',
+    'OPTIONS /rest/v1/expenses, Origin: http://localhost:5173',
+    async () => {
+      const response = await fetch(`${URL}/rest/v1/expenses`, {
+        method: 'OPTIONS',
+        headers: {
+          Origin: 'http://localhost:5173',
+          'Access-Control-Request-Method': 'POST',
+          'Access-Control-Request-Headers': 'apikey,authorization,content-type',
+        },
+      });
+      const allow = response.headers.get('access-control-allow-origin');
+      expect(response.ok && allow !== null, `HTTP ${response.status}, allow-origin ${allow}`);
+      return `HTTP ${response.status}, Access-Control-Allow-Origin: ${allow}`;
+    },
+  );
 }
 
 const passed = results.filter((r) => r.ok).length;
@@ -282,7 +327,9 @@ const lines = [
   '',
   '| № | Проверка | Запрос | Результат | мс |',
   '|---|---|---|---|---|',
-  ...results.map((r, i) => `| ${i + 1} | ${r.ok ? '✅' : '❌'} ${r.name} | \`${r.request}\` | ${String(r.detail).replaceAll('|', '/')} | ${r.ms} |`),
+  ...results.map(
+    (r, i) => `| ${i + 1} | ${r.ok ? '✅' : '❌'} ${r.name} | \`${r.request}\` | ${String(r.detail).replaceAll('|', '/')} | ${r.ms} |`,
+  ),
   '',
 ];
 if (!SEED_DEMO) {

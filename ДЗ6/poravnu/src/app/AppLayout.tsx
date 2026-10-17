@@ -34,7 +34,10 @@ export function AppLayout() {
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
           <Link to="/" className={cx('flex items-center gap-2 rounded-xl font-semibold text-slate-900', FOCUS_RING)}>
-            <span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-700 text-sm font-bold text-white">
+            <span
+              aria-hidden="true"
+              className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-700 text-sm font-bold text-white"
+            >
               =
             </span>
             ПоРовну
@@ -54,7 +57,13 @@ export function AppLayout() {
         {inGroup && isWide && signedIn && <GroupsSidebar />}
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 outline-none sm:py-4 lg:py-0">
           {/* Экраны грузятся отдельными файлами: пока файл едет, шапка остаётся на месте. */}
-          <Suspense fallback={<p role="status" className="px-4 py-10 text-center text-slate-500">Загрузка…</p>}>
+          <Suspense
+            fallback={
+              <p role="status" className="px-4 py-10 text-center text-slate-500">
+                Загрузка…
+              </p>
+            }
+          >
             <Outlet />
           </Suspense>
         </main>

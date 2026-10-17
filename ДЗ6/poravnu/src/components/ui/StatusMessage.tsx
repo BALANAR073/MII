@@ -15,10 +15,7 @@ export function StatusMessage({ tone, title, description, action, icon }: Status
   return (
     <div
       role={tone === 'error' ? 'alert' : 'status'}
-      className={cx(
-        'flex flex-col items-center rounded-xl px-6 py-10 text-center',
-        tone === 'error' ? 'bg-rose-50' : 'bg-white',
-      )}
+      className={cx('flex flex-col items-center rounded-xl px-6 py-10 text-center', tone === 'error' ? 'bg-rose-50' : 'bg-white')}
     >
       {icon !== undefined && (
         <span aria-hidden="true" className="mb-3 text-4xl">

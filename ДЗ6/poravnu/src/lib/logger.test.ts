@@ -12,7 +12,7 @@ import {
   setLogSilent,
 } from './logger';
 
-function parseBatch(body: string | undefined): Array<Record<string, unknown>> {
+function parseBatch(body: string | undefined): Record<string, unknown>[] {
   const parsed: unknown = JSON.parse(body ?? '{}');
   if (typeof parsed === 'object' && parsed !== null && 'entries' in parsed && Array.isArray(parsed.entries)) {
     return parsed.entries.filter((item: unknown): item is Record<string, unknown> => typeof item === 'object' && item !== null);

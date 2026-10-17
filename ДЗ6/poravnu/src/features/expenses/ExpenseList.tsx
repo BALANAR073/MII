@@ -49,10 +49,7 @@ export function ExpenseList({ expenses, members, currentUserId, pendingIds = NO_
             ) : (
               <Link
                 to={`expenses/${expense.id}`}
-                className={cx(
-                  'flex items-start gap-4 px-4 py-3 transition hover:bg-slate-50',
-                  FOCUS_RING_INSET,
-                )}
+                className={cx('flex items-start gap-4 px-4 py-3 transition hover:bg-slate-50', FOCUS_RING_INSET)}
               >
                 {content}
               </Link>

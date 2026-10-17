@@ -7,7 +7,8 @@
 export const FOCUS_RING = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700';
 
 /** Кольцо фокуса внутри строки списка — без выноса за границы строки. */
-export const FOCUS_RING_INSET = 'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-700';
+export const FOCUS_RING_INSET =
+  'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-700';
 
 /** Ссылка, оформленная как основная кнопка («+ Расход», «Добавить расход»). */
 export const PRIMARY_LINK =

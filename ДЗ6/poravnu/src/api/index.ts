@@ -13,9 +13,12 @@ const url = import.meta.env.VITE_SUPABASE_URL;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 /** Приложение подключено к Supabase (а не к mock-данным). */
-export const IS_SUPABASE = typeof url === 'string' && url !== '' && typeof anonKey === 'string' && anonKey !== '' && import.meta.env.MODE !== 'test';
+export const IS_SUPABASE =
+  typeof url === 'string' && url !== '' && typeof anonKey === 'string' && anonKey !== '' && import.meta.env.MODE !== 'test';
 
-const apis: { data: DataApi; auth: AuthApi } = IS_SUPABASE ? createSupabaseApis(url ?? '', anonKey ?? '') : { data: mockData, auth: mockAuth };
+const apis: { data: DataApi; auth: AuthApi } = IS_SUPABASE
+  ? createSupabaseApis(url ?? '', anonKey ?? '')
+  : { data: mockData, auth: mockAuth };
 
 export const auth: AuthApi = apis.auth;
 export const {

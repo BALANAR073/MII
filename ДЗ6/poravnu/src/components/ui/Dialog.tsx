@@ -11,7 +11,8 @@ interface DialogProps {
   footer?: ReactNode;
 }
 
-const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])';
 
 /**
  * Модальное окно: закрывается по Esc и кнопке, держит фокус внутри и возвращает его после закрытия (NFR-2).
@@ -77,7 +78,10 @@ export function Dialog({ title, onClose, children, fullScreenOnMobile = false, f
             type="button"
             onClick={onClose}
             aria-label="Закрыть"
-            className={cx('flex h-11 w-11 items-center justify-center rounded-xl text-2xl leading-none text-slate-500 hover:bg-slate-100', FOCUS_RING)}
+            className={cx(
+              'flex h-11 w-11 items-center justify-center rounded-xl text-2xl leading-none text-slate-500 hover:bg-slate-100',
+              FOCUS_RING,
+            )}
           >
             ×
           </button>

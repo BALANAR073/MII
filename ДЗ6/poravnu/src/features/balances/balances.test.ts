@@ -37,9 +37,9 @@ describe('getExpenseShares', () => {
 
   it('бросает RangeError для участника не из группы', () => {
     const { members } = kazanLedger();
-    expect(() =>
-      getExpenseShares({ id: 'x', amountKop: 100, split: { kind: 'equal', memberIds: ['ghost'] } }, members),
-    ).toThrow(RangeError);
+    expect(() => getExpenseShares({ id: 'x', amountKop: 100, split: { kind: 'equal', memberIds: ['ghost'] } }, members)).toThrow(
+      RangeError,
+    );
   });
 });
 

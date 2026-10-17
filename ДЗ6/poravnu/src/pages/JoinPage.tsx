@@ -73,7 +73,8 @@ export function JoinPage() {
       </p>
       <h1 className="mt-4 text-2xl font-semibold text-slate-900">Вас зовут в группу «{groupName}»</h1>
       <p className="mt-2 text-sm text-slate-600">
-        Уже {membersCount} {plural(membersCount, ['участник', 'участника', 'участников'])}. В группе общие расходы и балансы — кто кому сколько должен.
+        Уже {membersCount} {plural(membersCount, ['участник', 'участника', 'участников'])}. В группе общие расходы и балансы — кто кому
+        сколько должен.
       </p>
       <div className="mt-6">
         {authState.user === null ? (

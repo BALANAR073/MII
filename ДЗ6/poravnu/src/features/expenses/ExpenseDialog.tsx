@@ -59,7 +59,13 @@ function NewExpense({ onClose }: NewExpenseProps) {
 
   return (
     <Dialog title="Новый расход" onClose={onClose} fullScreenOnMobile>
-      <ExpenseForm initialValues={initial} activeMembers={activeMembers} submitLabel="Сохранить" onSubmit={createExpense} onCancel={onClose} />
+      <ExpenseForm
+        initialValues={initial}
+        activeMembers={activeMembers}
+        submitLabel="Сохранить"
+        onSubmit={createExpense}
+        onCancel={onClose}
+      />
     </Dialog>
   );
 }
@@ -95,7 +101,11 @@ function ExistingExpense({ expense, onClose }: ExistingExpenseProps) {
         onClose();
         return;
       }
-      showToast({ message: apiErrorMessage(error, 'save'), tone: 'error', action: { label: 'Повторить', onClick: () => void save(input) } });
+      showToast({
+        message: apiErrorMessage(error, 'save'),
+        tone: 'error',
+        action: { label: 'Повторить', onClick: () => void save(input) },
+      });
     }
   };
 
@@ -223,7 +233,8 @@ function isSplit(value: unknown): boolean {
     'shares' in value &&
     Array.isArray(value.shares) &&
     value.shares.every(
-      (share: unknown) => typeof share === 'object' && share !== null && 'memberId' in share && 'weight' in share && typeof share.weight === 'number',
+      (share: unknown) =>
+        typeof share === 'object' && share !== null && 'memberId' in share && 'weight' in share && typeof share.weight === 'number',
     )
   );
 }

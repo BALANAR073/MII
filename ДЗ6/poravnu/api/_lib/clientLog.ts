@@ -97,7 +97,8 @@ function toRecord(item: unknown): ClientLogRecord | null {
   const release = text(item.release, STRING_LIMITS.release);
   const session = text(item.session, STRING_LIMITS.session);
   if (op !== undefined) record.op = op;
-  if (typeof item.status === 'number' && Number.isInteger(item.status) && item.status >= 0 && item.status < 1000) record.status = item.status;
+  if (typeof item.status === 'number' && Number.isInteger(item.status) && item.status >= 0 && item.status < 1000)
+    record.status = item.status;
   if (code !== undefined) record.code = code;
   if (kind !== undefined) record.kind = kind;
   if (message !== undefined) record.message = message;

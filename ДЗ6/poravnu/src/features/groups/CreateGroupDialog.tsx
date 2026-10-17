@@ -100,7 +100,8 @@ export function CreateGroupDialog({ onClose, onCreated }: CreateGroupDialogProps
                 tabIndex={emoji === item ? 0 : -1}
                 aria-label={`Эмодзи ${item}`}
                 className={cx(
-                  'flex aspect-square items-center justify-center rounded-xl text-xl', FOCUS_RING,
+                  'flex aspect-square items-center justify-center rounded-xl text-xl',
+                  FOCUS_RING,
                   emoji === item ? 'bg-emerald-100 ring-2 ring-emerald-700' : 'bg-slate-100 hover:bg-slate-200',
                 )}
                 onClick={() => setEmoji(item)}
