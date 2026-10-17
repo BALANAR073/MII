@@ -16,7 +16,7 @@
 
 | Шаг | Требование | Результат | Статус |
 |---|---|---|:-:|
-| 1 | CI/CD: зависимости, сборка, тесты, деплой, линтинг и форматирование, автодеплой из main | GitHub Actions `dz6-ci-cd.yml`: Prettier → ESLint → TypeScript → 237 тестов → `npm audit` → сборка → Vercel → smoke-тест | ✅ |
+| 1 | CI/CD: зависимости, сборка, тесты, деплой, линтинг и форматирование, автодеплой из main | GitHub Actions `dz6-ci-cd.yml`: Prettier → ESLint → TypeScript → 244 теста → `npm audit` → сборка → Vercel → smoke-тест | ✅ |
 | 2 | Аудит безопасности: зависимости, OWASP Top 10, AI-анализ, исправления | 12 находок, 9 исправлено, 3 принятых риска; Dependabot, CodeQL, `npm audit` в каждом запуске | ✅ |
 | 3 | OAuth2 | вход через Google (OAuth 2.0 + PKCE через Supabase Auth), приложение опубликовано | ✅ |
 | 4 | Аналитика | Яндекс.Метрика, счётчик 113655788, 7 целей воронки | ✅ |
@@ -34,7 +34,7 @@
 
 ```mermaid
 flowchart LR
-  P["push / pull request<br/>ДЗ6/poravnu/**"] --> F["Prettier"] --> L["ESLint"] --> T["TypeScript"] --> U["237 тестов<br/>(фронтенд, api, БД)"] --> A["npm audit<br/>prod: high+ блокирует"] --> B["vite build"]
+  P["push / pull request<br/>ДЗ6/poravnu/**"] --> F["Prettier"] --> L["ESLint"] --> T["TypeScript"] --> U["244 теста<br/>(фронтенд, api, БД)"] --> A["npm audit<br/>prod: high+ блокирует"] --> B["vite build"]
   B -->|"только main"| V["vercel build →<br/>deploy --prebuilt --prod"] --> S["smoke-тест<br/>health, коммит, CSP, HSTS,<br/>SPA, /privacy"]
   P --> C["CodeQL<br/>security-extended"]
   D["Dependabot<br/>раз в неделю"] -->|"PR"| P
@@ -54,7 +54,7 @@ flowchart LR
 | Форматирование | `npm run format:check` (Prettier) | файл не отформатирован; список файлов — аннотациями к запуску |
 | Линтер | `npm run lint` (ESLint, `--max-warnings=0`) | нарушены правила проекта (раздел 7.3) |
 | Типы | `npm run typecheck` | ошибка TypeScript strict |
-| Тесты | `npm test` (Vitest) | любой из 237 тестов; упавшие — аннотациями с файлом и текстом ошибки |
+| Тесты | `npm test` (Vitest) | любой из 244 тестов; упавшие — аннотациями с файлом и текстом ошибки |
 | Аудит зависимостей | `npm audit --omit=dev --audit-level=high` | уязвимость high/critical в пакетах, которые попадают в сайт |
 | Сборка | `npm run build` | сборка не прошла; размеры файлов — в отчёте запуска |
 
@@ -140,9 +140,11 @@ sequenceDiagram
 ### Как устроено
 
 - Счётчик **113655788** подключается в `src/main.tsx` только в выложенной версии (`import.meta.env.PROD`) и только если задана переменная `VITE_YM_COUNTER_ID`. Код: `src/lib/metrika.ts`.
-- Скрипт `tag.js` грузится с `mc.yandex.ru`, без inline-кода: так он проходит CSP (`script-src` разрешает только `mc.yandex.ru` и `yastatic.net`).
+- **Только с согласия пользователя.** При первом визите внизу экрана появляется баннер «Разрешить / Отказаться» со ссылкой на политику. До ответа и после отказа `tag.js` не загружается, цели не копятся (152-ФЗ). Код: `src/components/ui/AnalyticsConsentBanner.tsx`.
+- Скрипт `tag.js` грузится с `mc.yandex.ru`, без inline-кода: так он проходит CSP (`script-src` разрешает только `mc.yandex.ru`).
 - **Просмотры страниц в SPA**: адрес меняется без перезагрузки, поэтому `App.tsx` сам отправляет `hit` при каждой смене маршрута.
-- **Приватность**: Вебвизор выключен (на экранах суммы долгов и имена). Query из адреса отрезается, токен приглашения `/join/<token>` заменяется на `/join/:token`. В цели передаётся только факт действия, без сумм, имён и id.
+- **Метрика получает только адреса, которые передали мы.** Автосбор, читающий `location.href` (карта кликов, внешние ссылки, точный отказ), выключен. На страницах с секретом в адресе — `/join/<токен>`, `/auth/callback?code=…`, любой query — счётчик не запускается, а цели ждут первой безопасной страницы: `reachGoal` отправляет текущий адрес. Это исправление находки независимого AI-аудита (`ai_security_audit_response.md`, №1).
+- **Приватность**: Вебвизор выключен (на экранах суммы долгов и имена). В цели передаётся только факт действия, без сумм, имён и id.
 
 ### Цели (воронка продукта)
 
@@ -176,7 +178,7 @@ DevTools → Network на https://poravnu.vercel.app (скриншот `screensh
 | `113655788?page-url=…` (ping) | 200 | просмотр страницы отправлен |
 | `mdd.yandex.net` | failed | служебная синхронизация Яндекса; на машине проверяющего Chrome не доверяет её сертификату. На подсчёт не влияет |
 
-В консоли нет ошибок CSP. Данные в отчётах Метрики появляются через 5–15 минут. Тесты: `src/lib/metrika.test.ts` — без номера счётчика ничего не подключается, Вебвизор выключен, повторная инициализация не создаёт второй счётчик.
+В консоли нет ошибок CSP. Данные в отчётах Метрики появляются через 5–15 минут. Скриншот Network снят до исправления №1; после него запросы те же, но счётчик стартует только после «Разрешить». Тесты: `src/lib/metrika.test.ts` (6) — без согласия ничего не грузится, автосбор выключен, первая страница считается, на `/join/<токен>` счётчик не стартует и токен не попадает ни в один вызов, при отказе ничего не отправляется; `AnalyticsConsentBanner.test.tsx` (3).
 
 ## 5. Аудит безопасности — кратко
 
@@ -189,6 +191,7 @@ DevTools → Network на https://poravnu.vercel.app (скриншот `screensh
 | Исправлено | 9 — open redirect (зависимость и `safeNext`), защита `/api/log` от чужих сайтов, actions по SHA, Dependabot, CodeQL, публикация OAuth, политика конфиденциальности, устойчивый smoke-тест |
 | Принято с обоснованием | 3 — `style-src 'unsafe-inline'`, уязвимости в инструментах сборки Tailwind 3 (не попадают в сайт), публичный пароль демо-аккаунтов |
 | Зависимости сайта | 0 уязвимостей |
+| Независимый второй аудит | AI-агент на ПК (`ai_security_audit.md`, 7/10): 14 находок, в том числе высокая — токен приглашения в Метрике; 8 исправлено в коде (`ai_security_audit_response.md`) |
 | Оценка | 8 из 10 |
 
 Защита от распространённых атак: **XSS** — React экранирует вывод, `dangerouslySetInnerHTML` и `eval` в коде нет, строгая CSP для скриптов. **CSRF** — сессия передаётся заголовком `Authorization: Bearer`, а не cookie, поэтому чужая страница не может отправить запрос от имени пользователя; `/api/log` дополнительно проверяет `Sec-Fetch-Site`. **SQL-инъекции** — запросов, собранных из строк, нет: PostgREST параметризует запросы, функции в БД используют параметры и `search_path = ''`.
@@ -233,7 +236,7 @@ DevTools → Network на https://poravnu.vercel.app (скриншот `screensh
 | Случай | Данные для AI | Вывод агента | Действие |
 |---|---|---|---|
 | Выкладка `bf3e521` упала на smoke-тесте, перезапуск прошёл | аннотации запуска, тело `/api/health`, код шага | цикл ожидания выходил на первом ответе 200, а основной адрес ещё отдавал предыдущую версию: сверка коммита падала. Не сбой сайта, а гонка в тесте | ждать ответа именно нового коммита (С-09) |
-| Тест «История — скелетон» падал через раз (PR #3, затем main) | аннотация упавшего теста: файл, имя, `toBeInTheDocument` | ответ mock-API без задержки приходил раньше первой проверки: тест зависел от скорости машины | задержка ответа в тесте; 237 из 237 стабильно |
+| Тест «История — скелетон» падал через раз (PR #3, затем main) | аннотация упавшего теста: файл, имя, `toBeInTheDocument` | ответ mock-API без задержки приходил раньше первой проверки: тест зависел от скорости машины | задержка ответа в тесте; все тесты стабильно зелёные |
 | Ошибка `mdd.yandex.net ERR_CERT_AUTHORITY_INVALID` в консоли | консоль и Network браузера | запрос служебного фрейма Метрики; визиты (`watch`, ping) уходят со статусом 200; ошибок CSP нет | не исправлять: не наш код и не влияет на подсчёт |
 | `npm audit`: 5 high и 2 moderate | аннотации `npm audit` с цепочками `via` | все пути ведут к Tailwind CSS 3, только инструменты сборки; `audit fix` без major не помогает | принятый риск, переход на Tailwind 4 в рекомендациях |
 
@@ -269,7 +272,7 @@ jobs:
 ### 7.2 Заголовки безопасности (`vercel.json`)
 
 ```json
-{ "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://mc.yandex.ru https://yastatic.net; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://mc.yandex.ru https://mc.yandex.com; frame-src https://mc.yandex.ru https://mc.yandex.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" },
+{ "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://mc.yandex.ru; connect-src 'self' https://itppbtrmsbpreraaecqe.supabase.co wss://itppbtrmsbpreraaecqe.supabase.co https://mc.yandex.ru https://mc.yandex.com; frame-src https://mc.yandex.ru https://mc.yandex.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" },
 { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
 { "key": "X-Frame-Options", "value": "DENY" },
 { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
