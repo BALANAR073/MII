@@ -58,8 +58,12 @@ jobs:
 
       - name: Автотесты (фронтенд, API-функции, БД на PGlite)
         run: |
-          npm test -- --reporter=default --reporter=json --outputFile.json=vitest.json
-          echo "::notice title=Автотесты::$(jq -r '"пройдено \(.numPassedTests) из \(.numTotalTests), файлов: \(.numTotalTestSuites)"' vitest.json)"
+          status=0
+          npm test -- --reporter=default --reporter=json --outputFile.json=vitest.json || status=$?
+          echo "::notice title=Автотесты::$(jq -r '"пройдено \(.numPassedTests) из \(.numTotalTests), наборов: \(.numTotalTestSuites)"' vitest.json)"
+          # Упавшие тесты — аннотациями с файлом и первой строкой ошибки.
+          jq -r '.testResults[] | .name as $f | .assertionResults[] | select(.status == "failed") | "::error file=\($f | sub(".*/poravnu/"; "ДЗ6/poravnu/")),title=\(.fullName | gsub("[,:]"; " "))::\((.failureMessages[0] // "") | split("\n")[0] | .[0:300])"' vitest.json | head -10
+          exit $status
 
       - name: Аудит зависимостей (production, уровень high и выше)
         run: npm audit --omit=dev --audit-level=high
