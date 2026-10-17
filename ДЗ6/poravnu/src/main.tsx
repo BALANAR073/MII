@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { IS_SUPABASE } from './api';
 import { App } from './app/App';
 import { enableRemoteLogging, installGlobalErrorHandlers } from './lib/logger';
-import { initMetrika } from './lib/metrika';
+import { configureMetrika } from './lib/metrika';
 import { applyDemoMode } from './mocks/demoMode';
 import './index.css';
 
@@ -19,8 +19,9 @@ if (import.meta.env.PROD && IS_SUPABASE) {
   enableRemoteLogging('/api/log', import.meta.env.VITE_APP_RELEASE ?? 'dev');
 }
 // Метрика — только в выложенной версии: локальные запуски не портят статистику.
+// Сам счётчик запустится после согласия в баннере и не на странице с токеном в адресе.
 if (import.meta.env.PROD) {
-  initMetrika(import.meta.env.VITE_YM_COUNTER_ID);
+  configureMetrika(import.meta.env.VITE_YM_COUNTER_ID);
 }
 
 const container = document.getElementById('root');

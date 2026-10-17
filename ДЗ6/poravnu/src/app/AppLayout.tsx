@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { Link, NavLink, Outlet, useMatch } from 'react-router-dom';
+import { AnalyticsConsentBanner } from '../components/ui/AnalyticsConsentBanner';
 import { Avatar } from '../components/ui/Avatar';
 import { Skeleton } from '../components/ui/Skeleton';
 import { GroupList } from '../features/groups/GroupList';
@@ -68,6 +69,7 @@ export function AppLayout() {
           </Suspense>
         </main>
       </div>
+      <AnalyticsConsentBanner />
     </div>
   );
 }
