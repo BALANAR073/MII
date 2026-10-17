@@ -1,0 +1,51 @@
+# ДЗ6 · Одноразовая установка линтера: ставит ESLint и Prettier, обновляет package-lock.json,
+# один раз форматирует код и пушит результат в ту же ветку dz6-lint. Перед слиянием в main файл удаляется.
+name: ДЗ6 Lint bootstrap
+
+on:
+  push:
+    branches: [dz6-lint]
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: ДЗ6/poravnu
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+
+      - name: Установка ESLint и Prettier
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --save-dev --no-audit --no-fund \
+            eslint@^9 @eslint/js@^9 typescript-eslint eslint-plugin-react-hooks eslint-plugin-jsx-a11y globals prettier
+
+      - name: Форматирование и автоисправления
+        run: |
+          npx prettier --write . > /dev/null
+          npx eslint . --fix || true
+
+      - name: Оставшиеся замечания линтера (в файл ветки)
+        run: |
+          npx eslint . --format json -o eslint.json || true
+          jq -r '.[] | .filePath as $f | .messages[] | "\($f | sub(".*/poravnu/"; "")):\(.line):\(.column) [\(.ruleId // "parse")] \(.message)"' eslint.json > lint_report.txt
+          rm eslint.json
+          wc -l lint_report.txt
+
+      - name: Коммит
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A .
+          git commit -m 'ДЗ6: ESLint и Prettier — установка, package-lock.json, автоформатирование' || echo 'нечего коммитить'
+          git push
