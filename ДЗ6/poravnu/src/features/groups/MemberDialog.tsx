@@ -92,8 +92,8 @@ export function MemberDialog({ groupId, member, balanceKop, onClose, onChanged }
         </div>
         {balanceKop !== 0 && (
           <p className="text-xs text-slate-500">
-            Убрать можно, когда участник в расчёте. Сейчас {balanceKop > 0 ? 'ему должны' : 'у него долг'} {formatRub(Math.abs(balanceKop))}
-            .
+            Убрать можно, когда участник в расчёте.{' '}
+            {`Сейчас ${balanceKop > 0 ? 'ему должны' : 'у него долг'} ${formatRub(Math.abs(balanceKop))}.`}
           </p>
         )}
       </form>

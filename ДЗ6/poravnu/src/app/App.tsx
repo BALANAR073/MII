@@ -3,6 +3,7 @@ import { Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { ToastProvider } from '../components/ui/Toast';
 import { trackPageView } from '../lib/metrika';
 import { GroupsPage } from '../pages/GroupsPage';
+import { HomePage } from '../pages/HomePage';
 import { AuthPage } from '../pages/AuthPage';
 import { NotFoundPage } from '../pages/SimplePages';
 import { AppLayout } from './AppLayout';
@@ -10,11 +11,13 @@ import { AuthProvider } from './AuthProvider';
 import { RequireAuth } from './RequireAuth';
 
 // Экраны, которые нужны не на первом показе, грузятся отдельными файлами (ДЗ6, оптимизация):
-// стартовый бандл — вход и «Мои группы».
+// стартовый бандл — вход, главная и «Мои группы».
 const GroupPage = lazy(() => import('../pages/GroupPage').then((m) => ({ default: m.GroupPage })));
 const HistoryPage = lazy(() => import('../pages/HistoryPage').then((m) => ({ default: m.HistoryPage })));
 const JoinPage = lazy(() => import('../pages/JoinPage').then((m) => ({ default: m.JoinPage })));
 const AuthCallbackPage = lazy(() => import('../pages/AuthCallbackPage').then((m) => ({ default: m.AuthCallbackPage })));
+const ActivityPage = lazy(() => import('../pages/ActivityPage').then((m) => ({ default: m.ActivityPage })));
+const ProfilePage = lazy(() => import('../pages/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 const PrivacyPage = lazy(() => import('../pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })));
 const ExpenseDialog = lazy(() => import('../features/expenses/ExpenseDialog').then((m) => ({ default: m.ExpenseDialog })));
 
@@ -37,7 +40,10 @@ export function App() {
             {/* Приглашение открывается и без входа: гость видит превью (FR-1.2, FR-2.3). */}
             <Route path="join/:token" element={<JoinPage />} />
             <Route element={<Protected />}>
-              <Route index element={<GroupsPage />} />
+              <Route index element={<HomePage />} />
+              <Route path="groups" element={<GroupsPage />} />
+              <Route path="activity" element={<ActivityPage />} />
+              <Route path="profile" element={<ProfilePage />} />
               <Route path="groups/:groupId" element={<GroupPage />}>
                 <Route path="expenses/new" element={<ExpenseDialog />} />
                 <Route path="expenses/:expenseId" element={<ExpenseDialog />} />

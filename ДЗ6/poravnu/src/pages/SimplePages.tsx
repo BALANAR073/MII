@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { StatusMessage } from '../components/ui/StatusMessage';
 
 const BACK_LINK = (
-  <Link to="/" className="inline-flex min-h-11 items-center rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white">
+  <Link to="/groups" className="inline-flex min-h-11 items-center rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white">
     К моим группам
   </Link>
 );

@@ -12,7 +12,7 @@ describe('Экран «Мои группы»', () => {
   });
 
   it('показывает группы со своим балансом (AC-T2.1)', async () => {
-    renderApp('/');
+    renderApp('/groups');
     expect(await screen.findAllByText('Вы должны 940,75 ₽')).not.toHaveLength(0);
     expect(screen.getAllByText('Вы в расчёте').length).toBeGreaterThan(0);
     expect(screen.getByText('Квартира на Ленина')).toBeInTheDocument();
@@ -20,13 +20,13 @@ describe('Экран «Мои группы»', () => {
 
   it('без групп показывает пояснение и кнопку создания (ERR-2)', async () => {
     resetMockDb({ ...createSeed(), groups: [], expenses: [], transfers: [] });
-    renderApp('/');
+    renderApp('/groups');
     expect(await screen.findByText('У вас пока нет групп')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Создать группу' })).toHaveLength(2);
   });
 
   it('не создаёт группу с пустым названием и создаёт с корректным (AC-02.1, AC-02.2)', async () => {
-    const { user } = renderApp('/');
+    const { user } = renderApp('/groups');
     await user.click((await screen.findAllByRole('button', { name: 'Создать группу' }))[0] as HTMLElement);
     await user.click(screen.getByRole('button', { name: 'Создать' }));
     expect(screen.getByText('Введите название')).toBeInTheDocument();

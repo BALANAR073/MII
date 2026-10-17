@@ -50,8 +50,8 @@ describe('вход, регистрация и защищённые маршру�
     await user.clear(screen.getByLabelText('Email'));
     await user.type(screen.getByLabelText('Email'), 'lesha@poravnu.demo');
     await user.click(screen.getByRole('button', { name: 'Создать аккаунт' }));
-    expect(await screen.findByRole('heading', { name: 'Мои группы' })).toBeInTheDocument();
-    expect(screen.getByText('У вас пока нет групп')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Привет, Лёша!' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Попробовать на примере' })).toBeInTheDocument();
   });
 
   it('параметр next не уводит на чужой сайт (защита от open redirect)', async () => {
@@ -59,7 +59,19 @@ describe('вход, регистрация и защищённые маршру�
     await user.type(await screen.findByLabelText('Email'), 'borya@poravnu.demo');
     await user.type(screen.getByLabelText('Пароль'), 'demo-pass');
     await user.click(screen.getByRole('button', { name: 'Войти' }));
-    expect(await screen.findByRole('heading', { name: 'Мои группы' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Привет, Боря!' })).toBeInTheDocument();
+  });
+
+  it('демо-аккаунт — вход одной кнопкой (ДЗ6)', async () => {
+    const { user } = renderApp('/login');
+    await user.click(await screen.findByRole('button', { name: 'Войти как Аня' }));
+    expect(await screen.findByRole('heading', { name: 'Привет, Аня!' })).toBeInTheDocument();
+  });
+
+  it('на регистрации демо-кнопок нет', async () => {
+    renderApp('/register');
+    await screen.findByLabelText('Имя');
+    expect(screen.queryByRole('button', { name: 'Войти как Аня' })).not.toBeInTheDocument();
   });
 });
 

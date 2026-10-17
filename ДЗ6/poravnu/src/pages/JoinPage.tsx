@@ -1,7 +1,7 @@
 import { trackGoal } from '../lib/metrika';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getInvitePreview, joinGroup } from '../api';
+import { claimMember, getInvitePreview, joinGroup } from '../api';
 import { useAuth } from '../app/AuthProvider';
 import { useResource } from '../app/useResource';
 import { Button } from '../components/ui/Button';
@@ -22,6 +22,8 @@ export function JoinPage() {
   const { state: authState } = useAuth();
   const { state, reload } = useResource(`invite:${token}`, () => getInvitePreview(token));
   const [joining, setJoining] = useState(false);
+  /** Какое место занять: id участника без аккаунта или NEW_MEMBER — вступить новым участником (ДЗ6). */
+  const [place, setPlace] = useState<string | null>(null);
   const navigate = useNavigate();
   const { showToast } = useToast();
 
@@ -38,7 +40,7 @@ export function JoinPage() {
           description={invalid ? 'Попросите у друзей новую ссылку.' : apiErrorMessage(state.error, 'load')}
           action={
             invalid ? (
-              <Link to="/" className={PRIMARY_LINK}>
+              <Link to="/groups" className={PRIMARY_LINK}>
                 К моим группам
               </Link>
             ) : (
@@ -50,13 +52,18 @@ export function JoinPage() {
     );
   }
 
-  const { groupName, emoji, membersCount } = state.data;
+  const { groupName, emoji, membersCount, places } = state.data;
+  const choice = place ?? (places.length > 0 ? null : NEW_MEMBER);
   const next = encodeURIComponent(`/join/${token}`);
 
   const handleJoin = async () => {
+    if (choice === null) {
+      showToast({ message: 'Выберите себя в списке или «Меня нет в списке»', tone: 'error' });
+      return;
+    }
     setJoining(true);
     try {
-      const groupId = await joinGroup(token);
+      const groupId = choice === NEW_MEMBER ? await joinGroup(token) : await claimMember(token, choice);
       trackGoal('group_joined');
       showToast({ message: `Вы в группе «${groupName}»`, tone: 'success' });
       navigate(`/groups/${groupId}`, { replace: true });
@@ -87,11 +94,47 @@ export function JoinPage() {
             </Link>
           </div>
         ) : (
-          <Button pending={joining} onClick={() => void handleJoin()} className="w-full">
-            Вступить
-          </Button>
+          <>
+            {places.length > 0 && (
+              <fieldset className="mb-4 text-left">
+                <legend className="mb-2 text-sm font-medium text-slate-800">Кто вы в этой группе?</legend>
+                <p className="mb-3 text-sm text-slate-600">
+                  Участники ниже добавлены по имени. Выберите себя — все ваши расходы и долги перейдут в ваш аккаунт.
+                </p>
+                <div className="space-y-2">
+                  {[
+                    ...places.map((item) => ({ id: item.memberId, label: `Это я — ${item.name}` })),
+                    { id: NEW_MEMBER, label: 'Меня нет в списке' },
+                  ].map((option) => (
+                    <label
+                      key={option.id}
+                      className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 has-[:checked]:border-emerald-700 has-[:checked]:bg-emerald-50"
+                    >
+                      <input
+                        type="radio"
+                        name="join-place"
+                        className="h-4 w-4 accent-emerald-700"
+                        checked={choice === option.id}
+                        onChange={() => setPlace(option.id)}
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+            <Button pending={joining} onClick={() => void handleJoin()} className="w-full">
+              Вступить
+            </Button>
+          </>
         )}
       </div>
+      {authState.user === null && places.length > 0 && (
+        <p className="mt-4 text-sm text-slate-600">Вас уже добавили по имени? После входа выберите себя — и увидите все свои расходы.</p>
+      )}
     </div>
   );
 }
+
+/** Значение «вступить новым участником» в выборе места. */
+const NEW_MEMBER = 'new';

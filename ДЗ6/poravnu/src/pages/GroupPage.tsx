@@ -48,7 +48,7 @@ export function GroupPage() {
           description={apiErrorMessage(state.error, 'load')}
           action={
             unavailable ? (
-              <Link to="/" className={PRIMARY_LINK}>
+              <Link to="/groups" className={PRIMARY_LINK}>
                 К моим группам
               </Link>
             ) : (

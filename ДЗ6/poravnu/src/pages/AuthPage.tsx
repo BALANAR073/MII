@@ -1,7 +1,9 @@
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../app/AuthProvider';
+import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
+import { demoAccounts, type DemoAccount } from '../features/auth/demoAccounts';
 import { apiErrorMessage } from '../lib/apiErrorMessage';
 import { cx } from '../lib/cx';
 import { trackGoal } from '../lib/metrika';
@@ -35,6 +37,7 @@ export function AuthPage({ mode }: AuthPageProps) {
   const isRegister = mode === 'register';
   const [providers, setProviders] = useState<OAuthProvider[]>([]);
   const [redirecting, setRedirecting] = useState<OAuthProvider | null>(null);
+  const [demoPending, setDemoPending] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -96,6 +99,25 @@ export function AuthPage({ mode }: AuthPageProps) {
     }
   };
 
+  // Быстрый вход в демо-аккаунт (ДЗ6): не нужно помнить email и пароль, поля заполняются для наглядности.
+  const handleDemo = async (account: DemoAccount) => {
+    setErrors({});
+    setFormError(null);
+    setValues((current) => ({ ...current, email: account.email, password: account.password }));
+    setPending(true);
+    setDemoPending(account.email);
+    try {
+      await signIn(account.email, account.password);
+      trackGoal('login');
+      navigate(next, { replace: true });
+    } catch (error) {
+      setFormError(apiErrorMessage(error, 'save'));
+    } finally {
+      setPending(false);
+      setDemoPending(null);
+    }
+  };
+
   const handleOAuth = async (provider: OAuthProvider) => {
     setFormError(null);
     setRedirecting(provider);
@@ -154,10 +176,36 @@ export function AuthPage({ mode }: AuthPageProps) {
             {formError}
           </p>
         )}
-        <Button type="submit" pending={pending} className="w-full">
+        <Button type="submit" pending={pending && demoPending === null} className="w-full">
           {isRegister ? 'Создать аккаунт' : 'Войти'}
         </Button>
       </form>
+      {!isRegister && (
+        <section aria-labelledby={`${id}-demo`} className="mt-6 rounded-xl border border-slate-200 bg-white px-4 py-4">
+          <h2 id={`${id}-demo`} className="text-sm font-semibold text-slate-900">
+            Демо-аккаунты
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">Вход в один клик — данные выдуманные, можно смело всё менять.</p>
+          <ul className="mt-3 grid grid-cols-2 gap-2">
+            {demoAccounts().map((account, index) => (
+              <li key={account.email}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full justify-start"
+                  pending={demoPending === account.email}
+                  disabled={pending && demoPending !== account.email}
+                  aria-label={`Войти как ${account.name}`}
+                  onClick={() => void handleDemo(account)}
+                >
+                  <Avatar name={account.name} index={index} size="sm" />
+                  {account.name}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {providers.length > 0 && (
         <div className="mt-6">
           <p className="flex items-center gap-3 text-xs uppercase tracking-wide text-slate-500 before:h-px before:flex-1 before:bg-slate-200 after:h-px after:flex-1 after:bg-slate-200">

@@ -31,7 +31,10 @@ export function GroupHeader({ group, currentUserId, myBalanceKop, onSettle, onIn
 
   return (
     <header className="bg-white px-4 pb-5 pt-4 sm:rounded-xl">
-      <Link to="/" className="mb-3 inline-flex min-h-11 items-center text-sm font-medium text-slate-600 hover:text-slate-900 xl:hidden">
+      <Link
+        to="/groups"
+        className="mb-3 inline-flex min-h-11 items-center text-sm font-medium text-slate-600 hover:text-slate-900 xl:hidden"
+      >
         ← Мои группы
       </Link>
       <div className="flex items-start justify-between gap-2">
