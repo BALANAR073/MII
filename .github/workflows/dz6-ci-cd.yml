@@ -72,6 +72,8 @@ jobs:
             jq -r '.metadata.vulnerabilities | "| critical | high | moderate | low |\n|---:|---:|---:|---:|\n| \(.critical) | \(.high) | \(.moderate) | \(.low) |"' audit.json
             jq -r '.vulnerabilities | to_entries[] | "- `\(.key)` — \(.value.severity)\(if .value.isDirect then ", прямая" else "" end)"' audit.json | head -30
           } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=npm audit (все зависимости)::$(jq -r '.metadata | "critical \(.vulnerabilities.critical), high \(.vulnerabilities.high), moderate \(.vulnerabilities.moderate), low \(.vulnerabilities.low); пакетов: \(.dependencies.total)"' audit.json)"
+          jq -r '.vulnerabilities | to_entries[] | "::warning title=npm audit: \(.key)::\(.value.severity)\(if .value.isDirect then ", прямая зависимость" else ", транзитивная" end); через: \([.value.via[] | if type == "string" then . else .title end] | join("; "))"' audit.json | head -10
 
       - name: Сборка
         env:
@@ -162,19 +164,24 @@ jobs:
           URL: ${{ steps.deploy.outputs.url }}
         run: |
           set -euo pipefail
-          for i in 1 2 3 4 5; do
-            code=$(curl -s -o health.json -w '%{http_code}' "$URL/api/health") || code=000
-            [ "$code" = 200 ] && break
-            echo "health: HTTP $code, повтор через 10 с"; sleep 10
+          want="${GITHUB_SHA::7}"
+          # Основной адрес переключается на новую выкладку не мгновенно: ждём ответа именно нового коммита,
+          # а не первого 200 (иначе тест ловил старую версию и падал на сверке коммита).
+          for i in $(seq 1 12); do
+            code=$(curl -s -o health.json -w '%{http_code}' --max-time 20 "$URL/api/health") || code=000
+            got=$(jq -r '.commit // empty' health.json 2>/dev/null || true)
+            [ "$code" = 200 ] && [ "$got" = "$want" ] && break
+            echo "health: HTTP $code, коммит ${got:-?} (ждём $want), повтор через 10 с"; sleep 10
           done
           cat health.json; echo
           test "$code" = 200
           test "$(jq -r .status health.json)" = ok
-          test "$(jq -r .commit health.json)" = "${GITHUB_SHA::7}"
-          curl -fsS -o /dev/null -D headers.txt "$URL/"
+          test "$(jq -r .commit health.json)" = "$want"
+          curl -fsS --retry 3 --retry-all-errors -o /dev/null -D headers.txt "$URL/"
           grep -qi '^content-security-policy:' headers.txt
           grep -qi '^strict-transport-security:' headers.txt
-          curl -fsS -o /dev/null "$URL/groups/any-id"   # SPA-маршрут отдаёт index.html, а не 404
+          curl -fsS --retry 3 --retry-all-errors -o /dev/null "$URL/groups/any-id"   # SPA-маршрут отдаёт index.html, а не 404
+          curl -fsS --retry 3 --retry-all-errors -o /dev/null "$URL/privacy"         # политика для Google OAuth доступна без входа
           {
             echo '### Выкладка'
             echo "- Адрес: $URL"

@@ -46,3 +46,16 @@ jobs:
       - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
         with:
           category: /language:${{ matrix.language }}
+          output: sarif-results
+
+      # Итог анализа — аннотациями к запуску: видно в Actions без доступа к разделу Security.
+      - name: Итог CodeQL
+        if: always()
+        run: |
+          shopt -s nullglob
+          files=(sarif-results/*.sarif)
+          [ ${#files[@]} -gt 0 ] || { echo "::warning title=CodeQL::SARIF не найден"; exit 0; }
+          rules=$(jq '[.runs[].tool.driver.rules // [] | length] | add // 0' "${files[@]}" | paste -sd+ | bc)
+          found=$(jq '[.runs[].results[]?] | length' "${files[@]}" | paste -sd+ | bc)
+          echo "::notice title=CodeQL ${{ matrix.language }}::правил проверено: $rules, найдено: $found"
+          jq -r '.runs[].results[]? | "::warning file=\(.locations[0].physicalLocation.artifactLocation.uri),line=\(.locations[0].physicalLocation.region.startLine // 1),title=CodeQL \(.ruleId)::\(.message.text | gsub("\n"; " "))"' "${files[@]}" | head -10
