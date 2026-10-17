@@ -2,6 +2,7 @@ import { cx } from '../../lib/cx';
 import { formatRub } from '../../lib/money';
 import { plural } from '../../lib/russian';
 import type { Member, MemberId } from '../../types/group';
+import { Button } from '../../components/ui/Button';
 import { BalanceList } from './BalanceList';
 import { TransferList } from './TransferList';
 import type { Settlement } from './useSettlement';
@@ -15,6 +16,10 @@ interface BalancesPanelProps {
   /** Подсветить блок переводов после нажатия «Рассчитаться» (решение Q3). */
   highlightTransfers?: boolean;
   onMarkTransfer: (transfer: SuggestedTransfer) => void;
+  /** Добавить участника по имени (ДЗ6). */
+  onAddMember?: () => void;
+  onInvite?: () => void;
+  onEditMember?: (member: Member, balanceKop: number) => void;
 }
 
 /**
@@ -28,6 +33,9 @@ export function BalancesPanel({
   currentUserId,
   highlightTransfers = false,
   onMarkTransfer,
+  onAddMember,
+  onInvite,
+  onEditMember,
 }: BalancesPanelProps) {
   const activeCount = members.filter((member) => member.leftAt === null).length;
   return (
@@ -41,10 +49,29 @@ export function BalancesPanel({
         </p>
       </section>
       <section className="bg-white sm:rounded-xl" aria-labelledby="balances-title">
-        <h2 id="balances-title" className="px-4 pb-1 pt-4 text-base font-semibold text-slate-900">
-          Балансы
-        </h2>
-        <BalanceList members={members} balances={settlement.balances} currentUserId={currentUserId} />
+        <div className="flex items-center justify-between gap-2 px-4 pb-1 pt-3">
+          <h2 id="balances-title" className="text-base font-semibold text-slate-900">
+            Участники и балансы
+          </h2>
+          {onAddMember !== undefined && (
+            <Button variant="ghost" className="min-h-9 px-3 text-emerald-800" onClick={onAddMember}>
+              + Добавить
+            </Button>
+          )}
+        </div>
+        <BalanceList members={members} balances={settlement.balances} currentUserId={currentUserId} onEditMember={onEditMember} />
+        {activeCount === 1 && onAddMember !== undefined && (
+          <p className="px-4 pb-3 text-sm text-slate-600">
+            В группе пока только вы. Добавьте участников по имени или отправьте им ссылку — и начинайте делить расходы.
+          </p>
+        )}
+        {onInvite !== undefined && (
+          <div className="border-t border-slate-100 px-4 py-3">
+            <Button variant="secondary" className="w-full" onClick={onInvite}>
+              Пригласить по ссылке
+            </Button>
+          </div>
+        )}
       </section>
       <section className={cx('bg-white sm:rounded-xl', highlightTransfers && 'ring-2 ring-emerald-700')} aria-labelledby="transfers-title">
         <h2 id="transfers-title" className="px-4 pb-3 pt-4 text-base font-semibold text-slate-900">

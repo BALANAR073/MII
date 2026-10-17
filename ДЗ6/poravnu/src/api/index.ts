@@ -34,4 +34,10 @@ export const {
   getInviteLink,
   getInvitePreview,
   joinGroup,
+  claimMember,
+  addMember,
+  renameMember,
+  removeMember,
+  updateGroup,
+  rotateInvite,
 } = apis.data;

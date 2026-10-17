@@ -32,6 +32,7 @@ describe('validateExpenseForm', () => {
         payerId: 'borya',
         split: { kind: 'equal', memberIds: ['anya', 'borya', 'vika'] },
         date: '2026-10-16',
+        category: 'housing', // подобрана по названию (ДЗ6)
       },
     });
   });

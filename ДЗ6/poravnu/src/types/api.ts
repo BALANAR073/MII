@@ -1,4 +1,4 @@
-import type { Expense, ExpenseSplit, Group, GroupDetails, GroupSummary, MemberId, Transfer } from './group';
+import type { Expense, ExpenseSplit, Group, GroupDetails, GroupSummary, Member, MemberId, Transfer } from './group';
 import type { Kopecks } from './money';
 
 /**
@@ -18,7 +18,9 @@ export type ApiErrorKind =
   | 'invalid-invite'
   | 'group-full'
   | 'auth-invalid-credentials'
-  | 'auth-email-taken';
+  | 'auth-email-taken'
+  | 'already-member'
+  | 'place-taken';
 
 /** Ошибка API с типом — по нему UI выбирает сообщение из раздела 6 ТЗ. */
 export class ApiError extends Error {
@@ -39,6 +41,7 @@ export interface ExpenseInput {
   payerId: MemberId;
   split: ExpenseSplit;
   date: string;
+  category?: string | null;
 }
 
 export interface TransferInput {
@@ -47,10 +50,18 @@ export interface TransferInput {
   amountKop: Kopecks;
 }
 
+/** Свободное место в группе: участник без аккаунта, которого можно занять по ссылке (ДЗ6). */
+export interface InvitePlace {
+  memberId: MemberId;
+  name: string;
+}
+
 export interface InvitePreview {
   groupName: string;
   emoji: string;
   membersCount: number;
+  /** Участники без аккаунта — гость может выбрать «Это я». */
+  places: InvitePlace[];
 }
 
 /** Операции с данными. Реализации: src/mocks/mockApi.ts и src/api/supabaseApi.ts. */
@@ -67,6 +78,17 @@ export interface DataApi {
   getInviteLink: (groupId: string) => Promise<string>;
   getInvitePreview: (token: string) => Promise<InvitePreview>;
   joinGroup: (token: string) => Promise<string>;
+  /** Вступить, заняв место участника без аккаунта; возвращает id группы (ДЗ6). */
+  claimMember: (token: string, memberId: MemberId) => Promise<string>;
+  /** Добавить участника по имени — без аккаунта (ДЗ6). */
+  addMember: (groupId: string, name: string) => Promise<Member>;
+  renameMember: (groupId: string, memberId: MemberId, name: string) => Promise<void>;
+  /** Убрать участника без аккаунта; только при нулевом балансе. */
+  removeMember: (groupId: string, memberId: MemberId) => Promise<void>;
+  /** Название и эмодзи — только владелец. */
+  updateGroup: (groupId: string, input: { name: string; emoji: string }) => Promise<void>;
+  /** Новая ссылка-приглашение, старая перестаёт работать — только владелец; возвращает ссылку. */
+  rotateInvite: (groupId: string) => Promise<string>;
 }
 
 export interface AuthUser {
@@ -94,4 +116,6 @@ export interface AuthApi {
    * @param next Внутренний адрес, куда вернуть пользователя после входа.
    */
   signInWithOAuth: (provider: OAuthProvider, next: string) => Promise<void>;
+  /** Новое имя: видно в группах и в шапке (ДЗ6, профиль). */
+  updateName: (name: string) => Promise<AuthUser>;
 }

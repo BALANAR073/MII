@@ -37,6 +37,10 @@ export function fromPostgrestError(error: RawSupabaseError, status: number): Api
       return new ApiError('group-full', hint || 'В группе уже 50 участников');
     case 'not_authenticated':
       return new ApiError('unauthorized', hint);
+    case 'already_member':
+      return new ApiError('already-member', hint || 'Вы уже состоите в этой группе');
+    case 'not_virtual':
+      return new ApiError('place-taken', hint || 'Это место уже занято');
     default:
       break;
   }

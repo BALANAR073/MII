@@ -15,17 +15,17 @@ interface GroupHeaderProps {
   group: Group;
   currentUserId: MemberId;
   myBalanceKop: Kopecks;
-  inviting?: boolean;
   onSettle: () => void;
   onInvite: () => void;
-  onLeave: () => void;
+  onAddMember: () => void;
+  onSettings: () => void;
 }
 
 /**
  * Шапка группы по концепции 1 (FR-4.5): название, участники, крупно свой баланс
  * и «Рассчитаться» — кнопка видна только тому, кто должен (решение Q3).
  */
-export function GroupHeader({ group, currentUserId, myBalanceKop, inviting = false, onSettle, onInvite, onLeave }: GroupHeaderProps) {
+export function GroupHeader({ group, currentUserId, myBalanceKop, onSettle, onInvite, onAddMember, onSettings }: GroupHeaderProps) {
   const activeMembers = group.members.filter((member) => member.leftAt === null);
   const status = getBalanceStatus(myBalanceKop);
 
@@ -34,9 +34,23 @@ export function GroupHeader({ group, currentUserId, myBalanceKop, inviting = fal
       <Link to="/" className="mb-3 inline-flex min-h-11 items-center text-sm font-medium text-slate-600 hover:text-slate-900 xl:hidden">
         ← Мои группы
       </Link>
-      <h1 className="text-2xl font-semibold text-slate-900">
-        {group.name} <span aria-hidden="true">{group.emoji}</span>
-      </h1>
+      <div className="flex items-start justify-between gap-2">
+        <h1 className="min-w-0 text-2xl font-semibold text-slate-900">
+          {group.name} <span aria-hidden="true">{group.emoji}</span>
+        </h1>
+        <button
+          type="button"
+          onClick={onSettings}
+          aria-label="Настройки группы"
+          title="Настройки группы"
+          className={cx(
+            '-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl text-slate-500 hover:bg-slate-100',
+            FOCUS_RING,
+          )}
+        >
+          <span aria-hidden="true">⚙</span>
+        </button>
+      </div>
       <div className="mt-3 flex items-center gap-3">
         {/* Не больше 5 аватаров и «+N»: при 50 участниках строка давала горизонтальную прокрутку (находка 11). */}
         <div className="flex shrink-0 -space-x-1.5">
@@ -68,7 +82,10 @@ export function GroupHeader({ group, currentUserId, myBalanceKop, inviting = fal
 
       <div className="mt-4 flex flex-wrap gap-2">
         {status === 'owes' && <Button onClick={onSettle}>Рассчитаться</Button>}
-        <Button variant="secondary" onClick={onInvite} pending={inviting}>
+        <Button variant="secondary" onClick={onAddMember}>
+          + Участник
+        </Button>
+        <Button variant="secondary" onClick={onInvite}>
           Пригласить
         </Button>
         <Link
@@ -80,9 +97,6 @@ export function GroupHeader({ group, currentUserId, myBalanceKop, inviting = fal
         >
           История
         </Link>
-        <Button variant="ghost" onClick={onLeave}>
-          Выйти из группы
-        </Button>
       </div>
     </header>
   );

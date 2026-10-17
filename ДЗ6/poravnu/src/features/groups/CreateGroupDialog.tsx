@@ -6,11 +6,10 @@ import { Dialog } from '../../components/ui/Dialog';
 import { useToast } from '../../components/ui/Toast';
 import { apiErrorMessage } from '../../lib/apiErrorMessage';
 import { cx } from '../../lib/cx';
-import { createGroup } from '../../api';
+import { addMember, createGroup } from '../../api';
 import { GROUP_EMOJIS } from '../../mocks/seed';
 import type { Group } from '../../types/group';
-import { FOCUS_RING } from '../../components/ui/styles';
-import { handleRovingKeyDown } from '../../components/ui/roving';
+import { EmojiPicker } from './EmojiPicker';
 
 interface CreateGroupDialogProps {
   onClose: () => void;
@@ -18,11 +17,28 @@ interface CreateGroupDialogProps {
 }
 
 const MAX_NAME_LENGTH = 50;
+const MAX_MEMBER_NAME = 40;
 
-/** Создание группы: название 1–50 символов и эмодзи из 8 вариантов (FR-2.2, AC-02.1, AC-02.2). */
+/**
+ * Имена участников из строки «Аня, Боря; Вика»: без пустых и повторов, длиннее 40 символов обрезаются.
+ * @param value Ввод пользователя.
+ */
+export function parseMemberNames(value: string): string[] {
+  const names = value
+    .split(/[,;\n]/)
+    .map((item) => item.trim().slice(0, MAX_MEMBER_NAME))
+    .filter((item) => item.length > 0);
+  return [...new Set(names)];
+}
+
+/**
+ * Создание группы: название 1–50 символов, эмодзи из 8 вариантов (FR-2.2, AC-02.1, AC-02.2)
+ * и, с ДЗ6, участники по имени — сразу при создании.
+ */
 export function CreateGroupDialog({ onClose, onCreated }: CreateGroupDialogProps) {
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState<string>(GROUP_EMOJIS[0]);
+  const [members, setMembers] = useState('');
   const [error, setError] = useState<string | null>(null);
   const { pending, run } = useMutation();
   const { showToast } = useToast();
@@ -45,7 +61,15 @@ export function CreateGroupDialog({ onClose, onCreated }: CreateGroupDialogProps
       return;
     }
     try {
-      const group = await run(() => createGroup({ name, emoji }));
+      const names = parseMemberNames(members);
+      const group = await run(async () => {
+        const created = await createGroup({ name, emoji });
+        // Участники по имени — сразу после группы (ДЗ6): новый пользователь не остаётся в группе один.
+        for (const memberName of names) {
+          await addMember(created.id, memberName);
+        }
+        return created;
+      });
       if (group !== undefined) {
         trackGoal('group_created');
         showToast({ message: `Группа «${group.name}» создана`, tone: 'success' });
@@ -88,30 +112,24 @@ export function CreateGroupDialog({ onClose, onCreated }: CreateGroupDialogProps
             </p>
           )}
         </div>
-        <fieldset>
-          <legend className="mb-2 text-sm font-medium text-slate-800">Эмодзи</legend>
-          <div role="radiogroup" aria-label="Эмодзи группы" className="grid grid-cols-8 gap-1">
-            {GROUP_EMOJIS.map((item) => (
-              <button
-                key={item}
-                type="button"
-                role="radio"
-                aria-checked={emoji === item}
-                tabIndex={emoji === item ? 0 : -1}
-                aria-label={`Эмодзи ${item}`}
-                className={cx(
-                  'flex aspect-square items-center justify-center rounded-xl text-xl',
-                  FOCUS_RING,
-                  emoji === item ? 'bg-emerald-100 ring-2 ring-emerald-700' : 'bg-slate-100 hover:bg-slate-200',
-                )}
-                onClick={() => setEmoji(item)}
-                onKeyDown={(event) => handleRovingKeyDown(event, GROUP_EMOJIS, emoji, setEmoji)}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        <EmojiPicker value={emoji} onChange={setEmoji} />
+        <div>
+          <label htmlFor={`${inputId}-members`} className="mb-1 block text-sm font-medium text-slate-800">
+            Участники <span className="font-normal text-slate-500">— необязательно</span>
+          </label>
+          <input
+            id={`${inputId}-members`}
+            value={members}
+            placeholder="Аня, Боря, Вика"
+            autoComplete="off"
+            aria-describedby={`${inputId}-members-hint`}
+            className="block min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-emerald-700"
+            onChange={(event) => setMembers(event.target.value)}
+          />
+          <p id={`${inputId}-members-hint`} className="mt-1 text-xs text-slate-500">
+            Имена через запятую. Аккаунт им не нужен — позже каждый займёт своё место по ссылке-приглашению.
+          </p>
+        </div>
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="ghost" onClick={onClose}>
             Отмена

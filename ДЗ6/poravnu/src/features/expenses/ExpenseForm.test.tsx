@@ -38,6 +38,7 @@ describe('ExpenseForm', () => {
       payerId: 'borya',
       split: { kind: 'equal', memberIds: ['anya', 'borya', 'gosha'] },
       date: '2026-10-16',
+      category: 'housing', // подобрана по названию «Хостел» (ДЗ6)
     });
   });
 

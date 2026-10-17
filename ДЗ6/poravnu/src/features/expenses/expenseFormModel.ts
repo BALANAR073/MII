@@ -1,6 +1,7 @@
 import { kopToInput, parseRubToKop } from '../../lib/money';
 import type { ExpenseInput } from '../../types/api';
 import type { Expense, Member, MemberId } from '../../types/group';
+import { guessCategory } from '../../lib/categories';
 import { toWeightedShares } from '../balances/getExpenseShares';
 
 export type SplitMode = 'equal' | 'shares';
@@ -15,6 +16,8 @@ export interface ExpenseFormValues {
   /** Доли в режиме «по долям» — строки, как их ввёл пользователь. */
   weights: Record<MemberId, string>;
   date: string;
+  /** id категории или '' — «подобрать по названию / Другое» (ДЗ6). */
+  category: string;
 }
 
 export type ExpenseFormField = 'title' | 'amount' | 'members' | 'weights' | 'date';
@@ -53,6 +56,7 @@ export function emptyExpenseForm(activeMembers: readonly Member[], currentUserId
     selected: Object.fromEntries(activeMembers.map((member) => [member.id, true])),
     weights: Object.fromEntries(activeMembers.map((member) => [member.id, '1'])),
     date: today,
+    category: '',
   };
 }
 
@@ -73,6 +77,7 @@ export function expenseToForm(expense: Expense, activeMembers: readonly Member[]
     selected: Object.fromEntries(activeMembers.map((member) => [member.id, weightById.has(member.id)])),
     weights: Object.fromEntries(activeMembers.map((member) => [member.id, String(weightById.get(member.id) ?? 1)])),
     date: expense.date,
+    category: expense.category ?? '',
   };
 }
 
@@ -125,6 +130,8 @@ export function validateExpenseForm(values: ExpenseFormValues, activeMembers: re
           ? { kind: 'equal', memberIds }
           : { kind: 'shares', shares: shares.map((share) => ({ memberId: share.memberId, weight: share.weight ?? 1 })) },
       date: values.date,
+      // Категория не выбрана — подбираем по названию; не подошла — «Другое» (null).
+      category: values.category !== '' ? values.category : guessCategory(title),
     },
   };
 }

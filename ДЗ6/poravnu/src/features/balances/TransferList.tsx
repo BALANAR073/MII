@@ -33,6 +33,10 @@ export function TransferList({ members, transfers, currentUserId, onMark }: Tran
     <ul className="space-y-2 px-4 pb-4" aria-label="Кто кому должен">
       {transfers.map((transfer) => {
         const involvesMe = transfer.fromId === currentUserId || transfer.toId === currentUserId;
+        // Перевод с участником без аккаунта отмечает любой участник: сам он войти не может (миграция 6).
+        const withVirtual = [transfer.fromId, transfer.toId].some((id) =>
+          members.some((member) => member.id === id && member.isVirtual === true),
+        );
         const fromName = memberName(transfer.fromId);
         const toName = memberName(transfer.toId);
         return (
@@ -54,7 +58,7 @@ export function TransferList({ members, transfers, currentUserId, onMark }: Tran
               </p>
               <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{formatRub(transfer.amountKop)}</span>
             </div>
-            {involvesMe && (
+            {(involvesMe || withVirtual) && (
               <Button variant="secondary" className="mt-2 w-full" onClick={() => onMark(transfer)}>
                 Отметить перевод
               </Button>

@@ -91,7 +91,11 @@ describe('участники без аккаунта (миграция 6)', () =
     await s.t.db.query(`select public.join_group($1)`, [s.token]);
     await s.t.asUser(s.me);
     await expectSqlError(
-      s.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 100)`, [s.groupId, other, third]),
+      s.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 100)`, [
+        s.groupId,
+        other,
+        third,
+      ]),
       '42501',
     );
   });
@@ -135,7 +139,14 @@ describe('перехват места по ссылке (миграция 6)', (
     await s.t.db.query(`insert into public.expenses (group_id, title, amount_kop, payer_id, split) values ($1, 'Палатка', 90000, $2, $3)`, [
       s.groupId,
       s.anya,
-      JSON.stringify({ kind: 'shares', shares: [{ memberId: s.me, weight: 1 }, { memberId: s.anya, weight: 1 }, { memberId: s.borya, weight: 1 }] }),
+      JSON.stringify({
+        kind: 'shares',
+        shares: [
+          { memberId: s.me, weight: 1 },
+          { memberId: s.anya, weight: 1 },
+          { memberId: s.borya, weight: 1 },
+        ],
+      }),
     ]);
     await s.t.db.query(`insert into public.transfers (group_id, from_id, to_id, amount_kop) values ($1, $2, $3, 10000)`, [
       s.groupId,
