@@ -87,6 +87,15 @@ export const mockAuth: AuthApi = {
     setCurrent(user);
     return Promise.resolve(user);
   },
+  deleteAccount: () => {
+    if (current === null) {
+      return Promise.reject(new ApiError('unauthorized', 'Сессия истекла, войдите снова'));
+    }
+    const id = current.id;
+    accounts = accounts.filter((account) => account.id !== id);
+    setCurrent(null);
+    return Promise.resolve();
+  },
   oauthProviders: () => Promise.resolve([...mockProviders]),
   signInWithOAuth: (provider) => {
     lastOAuthProvider = provider;

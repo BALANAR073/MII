@@ -125,6 +125,7 @@ export type Database = {
       get_invite_members: { Args: { p_token: string }; Returns: { member_id: string; name: string }[] };
       claim_member: { Args: { p_token: string; p_member: string }; Returns: string };
       update_group: { Args: { p_group: string; p_name: string; p_emoji: string }; Returns: undefined };
+      delete_my_account: { Args: Record<string, never>; Returns: undefined };
     };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };

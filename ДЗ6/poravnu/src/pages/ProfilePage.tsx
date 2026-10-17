@@ -5,6 +5,8 @@ import { useMutation } from '../app/useMutation';
 import { Avatar } from '../components/ui/Avatar';
 import { Button } from '../components/ui/Button';
 import { useToast } from '../components/ui/Toast';
+import { DeleteAccountDialog } from '../features/auth/DeleteAccountDialog';
+import { isDemoEmail } from '../features/auth/demoAccounts';
 import { useDashboard } from '../features/dashboard/useDashboard';
 import { apiErrorMessage } from '../lib/apiErrorMessage';
 import { getAnalyticsConsent, isMetrikaConfigured, setAnalyticsConsent, subscribeAnalyticsConsent } from '../lib/metrika';
@@ -12,12 +14,13 @@ import { formatRub } from '../lib/money';
 
 const NAME_MAX = 40;
 
-/** Профиль (ДЗ6): имя, сводка по моим тратам, согласие на статистику, политика и выход. */
+/** Профиль (ДЗ6): имя, сводка по моим тратам, согласие на статистику, политика, выход и удаление аккаунта. */
 export function ProfilePage() {
   const me = useCurrentUser();
   const { updateName, signOut } = useAuth();
   const [name, setName] = useState(me.name);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const save = useMutation();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -124,6 +127,27 @@ export function ProfilePage() {
           Выйти из аккаунта
         </Button>
       </section>
+
+      <section aria-labelledby="danger-title" className="rounded-xl border border-rose-200 bg-white px-4 py-4">
+        <h2 id="danger-title" className="text-base font-semibold text-slate-900">
+          Удаление аккаунта
+        </h2>
+        {isDemoEmail(me.email) ? (
+          <p className="mt-1 text-sm text-slate-600">
+            Это общий демо-аккаунт — его удалить нельзя, иначе вход «в один клик» перестанет работать.
+          </p>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-slate-600">
+              Профиль удалится навсегда. Перед этим загляните в группы — может, стоит рассчитаться.
+            </p>
+            <Button variant="danger" className="mt-3" onClick={() => setDeleting(true)}>
+              Удалить аккаунт
+            </Button>
+          </>
+        )}
+      </section>
+      {deleting && <DeleteAccountDialog onClose={() => setDeleting(false)} />}
     </div>
   );
 }

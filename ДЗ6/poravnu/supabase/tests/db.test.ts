@@ -497,11 +497,12 @@ describe('исправления по AI-ревью схемы (миграция
     const rows = await k.t.db.query<{ name: string }>(
       `select p.proname as name from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' order by 1`,
     );
-    // Миграция 6 добавила RPC участников и настроек группы; служебные функции по-прежнему в private.
+    // Миграции 6–7 добавили RPC участников, настроек группы и удаления аккаунта; служебные функции — в private.
     expect(rows.rows.map((row) => row.name)).toEqual([
       'add_member',
       'claim_member',
       'create_group',
+      'delete_my_account',
       'get_invite_members',
       'get_invite_preview',
       'group_balances',

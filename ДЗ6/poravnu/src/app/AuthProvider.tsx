@@ -14,6 +14,7 @@ interface AuthContextValue {
   signInWithOAuth: (provider: OAuthProvider, next: string) => Promise<void>;
   /** Смена имени в профиле (ДЗ6): новое имя сразу видно в шапке и в группах. */
   updateName: (name: string) => Promise<AuthUser>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -63,6 +64,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const user = await auth.updateName(name);
         setState({ status: 'ready', user });
         return user;
+      },
+      deleteAccount: async () => {
+        await auth.deleteAccount();
+        setState({ status: 'ready', user: null });
       },
     }),
     [state],

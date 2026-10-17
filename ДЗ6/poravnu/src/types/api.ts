@@ -118,4 +118,9 @@ export interface AuthApi {
   signInWithOAuth: (provider: OAuthProvider, next: string) => Promise<void>;
   /** Новое имя: видно в группах и в шапке (ДЗ6, профиль). */
   updateName: (name: string) => Promise<AuthUser>;
+  /**
+   * Удаляет аккаунт (ДЗ6, миграция 7): группы, где больше никого нет, удаляются, в остальных место
+   * становится участником без аккаунта. После этого сессия завершается.
+   */
+  deleteAccount: () => Promise<void>;
 }
