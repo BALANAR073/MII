@@ -82,7 +82,7 @@ describe('схема и миграции', () => {
     t = await createTestDb();
   });
 
-  it('все 4 миграции применяются, профиль создаётся триггером при регистрации', async () => {
+  it('все миграции применяются, профиль создаётся триггером при регистрации', async () => {
     const id = await t.createUser('Аня');
     const profile = await t.db.query<{ name: string; email: string }>(`select name, email from public.profiles where id = $1`, [id]);
     expect(profile.rows).toEqual([{ name: 'Аня', email: 'user1@example.com' }]);
@@ -497,8 +497,12 @@ describe('исправления по AI-ревью схемы (миграция
     const rows = await k.t.db.query<{ name: string }>(
       `select p.proname as name from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' order by 1`,
     );
+    // Миграция 6 добавила RPC участников и настроек группы; служебные функции по-прежнему в private.
     expect(rows.rows.map((row) => row.name)).toEqual([
+      'add_member',
+      'claim_member',
       'create_group',
+      'get_invite_members',
       'get_invite_preview',
       'group_balances',
       'handle_new_user',
@@ -506,7 +510,10 @@ describe('исправления по AI-ревью схемы (миграция
       'leave_group',
       'lock_group_on_delete',
       'my_groups',
+      'remove_member',
+      'rename_member',
       'rotate_invite',
+      'update_group',
       'validate_expense',
       'validate_transfer',
     ]);
