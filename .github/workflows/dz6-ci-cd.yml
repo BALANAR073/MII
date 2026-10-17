@@ -47,7 +47,8 @@ jobs:
       - name: Форматирование (Prettier)
         run: |
           # Файлы без форматирования — аннотациями к запуску, чтобы их было видно без логов.
-          npx prettier --list-different . | while read -r f; do echo "::error file=ДЗ6/poravnu/$f::Не отформатирован Prettier (npm run format)"; done
+          # Имена файлов экранируются: из PR они могли бы подставить свои команды workflow (находка 13 AI-аудита).
+          npx prettier --list-different . | jq -Rr '@text "::error file=ДЗ6/poravnu/\(gsub("%";"%25") | gsub("\r";"%0D") | gsub("\n";"%0A") | gsub(":";"%3A") | gsub(",";"%2C"))::Не отформатирован Prettier (npm run format)"'
           npm run format:check
 
       - name: Линтер (ESLint — правила CLAUDE.md, хуки React, доступность)
@@ -62,7 +63,10 @@ jobs:
           npm test -- --reporter=default --reporter=json --outputFile.json=vitest.json || status=$?
           echo "::notice title=Автотесты::$(jq -r '"пройдено \(.numPassedTests) из \(.numTotalTests), наборов: \(.numTotalTestSuites)"' vitest.json)"
           # Упавшие тесты — аннотациями с файлом и первой строкой ошибки.
-          jq -r '.testResults[] | .name as $f | .assertionResults[] | select(.status == "failed") | "::error file=\($f | sub(".*/poravnu/"; "ДЗ6/poravnu/")),title=\(.fullName | gsub("[,:]"; " "))::\((.failureMessages[0] // "") | split("\n")[0] | .[0:300])"' vitest.json | head -10
+          jq -r 'def esc: gsub("%";"%25") | gsub("\r";"%0D") | gsub("\n";"%0A");
+                 def prop: esc | gsub(":";"%3A") | gsub(",";"%2C");
+                 .testResults[] | .name as $f | .assertionResults[] | select(.status == "failed")
+                 | "::error file=\($f | sub(".*/poravnu/"; "ДЗ6/poravnu/") | prop),title=\(.fullName | prop)::\((.failureMessages[0] // "") | split("\n")[0] | .[0:300] | esc)"' vitest.json | head -10
           exit $status
 
       - name: Аудит зависимостей (production, уровень high и выше)
@@ -109,8 +113,9 @@ jobs:
     environment:
       name: production
       url: ${{ steps.deploy.outputs.url }}
+    # VERCEL_TOKEN не задаётся на весь job: установка CLI и скрипты npm-пакетов его не видят (находка 2 AI-аудита).
+    # CLI читает токен из переменной окружения, флаг --token в аргументах процесса не нужен.
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
       VITE_YM_COUNTER_ID: ${{ vars.VITE_YM_COUNTER_ID }}
@@ -122,6 +127,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Проверка секрета
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
             echo "::error::Нет секрета VERCEL_TOKEN (Settings → Secrets and variables → Actions)"; exit 1
@@ -137,23 +144,30 @@ jobs:
 
       - name: Привязка к проекту (создаётся при первом запуске)
         working-directory: ${{ runner.temp }}/poravnu
-        run: vercel link --yes --project poravnu --token "$VERCEL_TOKEN" || vercel link --yes --token "$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel link --yes --project poravnu || vercel link --yes
 
       - name: Настройки проекта
         working-directory: ${{ runner.temp }}/poravnu
-        run: vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production
 
       - name: Сборка для Vercel
         working-directory: ${{ runner.temp }}/poravnu
+        # Сборка запускает npm ci со скриптами пакетов — токена в окружении здесь нет.
         env:
           VITE_APP_RELEASE: ${{ github.sha }}
-        run: vercel build --prod --token "$VERCEL_TOKEN"
+        run: vercel build --prod
 
       - name: Выкладка
         working-directory: ${{ runner.temp }}/poravnu
         id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          url=$(vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN" \
+          url=$(vercel deploy --prebuilt --prod \
             -e VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
             -e VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" \
             -e APP_COMMIT="$GITHUB_SHA")

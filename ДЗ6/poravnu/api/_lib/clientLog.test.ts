@@ -44,7 +44,7 @@ describe('parseClientLogs', () => {
 
   it('обрезает длинное сообщение и чинит неверную дату', () => {
     const [record] = parseClientLogs([{ level: 'error', event: 'app.uncaught', message: 'я'.repeat(1000), ts: 'вчера' }]);
-    expect(record?.message).toHaveLength(300);
+    expect(record?.message).toHaveLength(150);
     expect(Number.isNaN(Date.parse(record?.ts ?? ''))).toBe(false);
   });
 });
@@ -67,10 +67,10 @@ describe('isSameOriginRequest', () => {
     expect(isSameOriginRequest(new Headers({ 'sec-fetch-site': 'same-site' }), url)).toBe(false);
   });
 
-  it('без Sec-Fetch-Site сравнивает Origin; без обоих заголовков пропускает', () => {
+  it('без Sec-Fetch-Site сравнивает Origin; без обоих заголовков (curl, скрипт) — отказ', () => {
     expect(isSameOriginRequest(new Headers({ origin: 'https://poravnu.vercel.app' }), url)).toBe(true);
     expect(isSameOriginRequest(new Headers({ origin: 'https://evil.example' }), url)).toBe(false);
-    expect(isSameOriginRequest(new Headers(), url)).toBe(true);
+    expect(isSameOriginRequest(new Headers(), url)).toBe(false);
   });
 });
 
@@ -84,6 +84,8 @@ describe('serverLog', () => {
 });
 
 describe('POST /api/log', () => {
+  const SAME_ORIGIN = { 'sec-fetch-site': 'same-origin' };
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -93,6 +95,7 @@ describe('POST /api/log', () => {
     const response = await POST(
       new Request('https://poravnu.test/api/log', {
         method: 'POST',
+        headers: SAME_ORIGIN,
         body: JSON.stringify({ entries: [{ level: 'error', event: 'app.uncaught', message: 'Ошибка у anya@example.com' }] }),
       }),
     );
@@ -104,10 +107,16 @@ describe('POST /api/log', () => {
 
   it('слишком большое тело — 413, неверный JSON — 204 без падения', async () => {
     vi.spyOn(console, 'info').mockImplementation(() => undefined);
-    const big = await POST(new Request('https://poravnu.test/api/log', { method: 'POST', body: 'x'.repeat(20_000) }));
+    const big = await POST(new Request('https://poravnu.test/api/log', { method: 'POST', headers: SAME_ORIGIN, body: 'x'.repeat(20_000) }));
     expect(big.status).toBe(413);
-    const bad = await POST(new Request('https://poravnu.test/api/log', { method: 'POST', body: '{не json' }));
+    const bad = await POST(new Request('https://poravnu.test/api/log', { method: 'POST', headers: SAME_ORIGIN, body: '{не json' }));
     expect(bad.status).toBe(204);
+  });
+
+  it('запрос без заголовков браузера (curl) — 403', async () => {
+    vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const response = await POST(new Request('https://poravnu.test/api/log', { method: 'POST', body: '{"entries":[]}' }));
+    expect(response.status).toBe(403);
   });
 
   it('запрос со страницы чужого сайта — 403, в журнал попадает только предупреждение', async () => {
