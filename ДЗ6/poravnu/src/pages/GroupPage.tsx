@@ -18,7 +18,7 @@ import { InviteDialog } from '../features/groups/InviteDialog';
 import { MemberDialog } from '../features/groups/MemberDialog';
 import { MyDebts } from '../features/balances/MyDebts';
 import { GroupStats } from '../features/stats/GroupStats';
-import { EXPENSE_CATEGORIES, categoryOf } from '../lib/categories';
+import { EXPENSE_CATEGORIES, expenseCategory } from '../lib/categories';
 import { GroupTabs, type GroupTab } from '../features/groups/GroupTabs';
 import { useGroupActions } from '../features/groups/useGroupActions';
 import { useGroup } from '../features/groups/useGroups';
@@ -92,7 +92,7 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
     return visibleExpenses.filter(
       (expense) =>
         (needle === '' || expense.title.toLowerCase().includes(needle)) &&
-        (categoryFilter === '' || categoryOf(expense.category).id === categoryFilter),
+        (categoryFilter === '' || expenseCategory(expense).id === categoryFilter),
     );
   }, [visibleExpenses, query, categoryFilter]);
   const ledger = useMemo(
@@ -122,7 +122,7 @@ function GroupView({ details, reload, refreshFailed }: GroupViewProps) {
   const myBalanceKop = settlement.balances.find((balance) => balance.memberId === currentUserId)?.balanceKop ?? 0;
   const activeCount = group.members.filter((member) => member.leftAt === null).length;
   const usedCategories = EXPENSE_CATEGORIES.filter((category) =>
-    visibleExpenses.some((expense) => categoryOf(expense.category).id === category.id),
+    visibleExpenses.some((expense) => expenseCategory(expense).id === category.id),
   );
 
   // «Рассчитаться» (решение Q3): один свой перевод — сразу диалог, несколько — вкладка «Балансы».

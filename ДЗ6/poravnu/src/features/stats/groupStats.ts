@@ -1,4 +1,4 @@
-import { categoryOf, type ExpenseCategory } from '../../lib/categories';
+import { expenseCategory, type ExpenseCategory } from '../../lib/categories';
 import type { Expense, Member, MemberId } from '../../types/group';
 import type { Kopecks } from '../../types/money';
 import { getExpenseShares } from '../balances/getExpenseShares';
@@ -53,7 +53,7 @@ export function computeGroupStats(expenses: readonly Expense[], members: readonl
   let biggest: Expense | null = null;
 
   for (const expense of expenses) {
-    const category = categoryOf(expense.category);
+    const category = expenseCategory(expense);
     const entry = categories.get(category.id) ?? { category, totalKop: 0, count: 0 };
     entry.totalKop += expense.amountKop;
     entry.count += 1;

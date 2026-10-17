@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { FOCUS_RING_INSET } from '../../components/ui/styles';
-import { categoryOf } from '../../lib/categories';
+import { expenseCategory } from '../../lib/categories';
 import { cx } from '../../lib/cx';
 import { formatShortDate } from '../../lib/dates';
 import { formatRub } from '../../lib/money';
@@ -21,7 +21,7 @@ export function ActivityFeed({ items, showGroup = true }: ActivityFeedProps) {
     <ul className="divide-y divide-slate-100" aria-label="Последние операции">
       {items.map((item) => {
         const key = item.kind === 'expense' ? `e-${item.expense.id}` : `t-${item.transfer.id}`;
-        const icon = item.kind === 'expense' ? categoryOf(item.expense.category).emoji : '💱';
+        const icon = item.kind === 'expense' ? expenseCategory(item.expense).emoji : '💱';
         const title = item.kind === 'expense' ? item.expense.title : `${item.fromName} → ${item.toName}`;
         const subtitle = item.kind === 'expense' ? `Платит: ${item.payerName}` : 'Перевод отмечен';
         const amountKop = item.kind === 'expense' ? item.expense.amountKop : item.transfer.amountKop;
