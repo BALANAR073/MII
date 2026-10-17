@@ -9,7 +9,7 @@ export default defineConfig({
     rolldownOptions: {
       output: {
         // Библиотеки — отдельными файлами: они меняются реже кода приложения и остаются в кэше браузера между релизами.
-        advancedChunks: {
+        codeSplitting: {
           groups: [
             { name: 'react', test: /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/ },
             { name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/ },
