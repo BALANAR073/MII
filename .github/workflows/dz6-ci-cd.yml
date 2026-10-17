@@ -45,7 +45,10 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Форматирование (Prettier)
-        run: npm run format:check
+        run: |
+          # Файлы без форматирования — аннотациями к запуску, чтобы их было видно без логов.
+          npx prettier --list-different . | while read -r f; do echo "::error file=ДЗ6/poravnu/$f::Не отформатирован Prettier (npm run format)"; done
+          npm run format:check
 
       - name: Линтер (ESLint — правила CLAUDE.md, хуки React, доступность)
         run: npm run lint
