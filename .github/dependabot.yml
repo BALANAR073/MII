@@ -1,0 +1,32 @@
+# ДЗ6 · Аудит безопасности: Dependabot раз в неделю проверяет зависимости «ПоРовну» и версии GitHub Actions
+# и открывает pull request с обновлением. Каждый такой PR проходит тот же конвейер dz6-ci-cd.yml:
+# тесты, проверку типов, линтер и npm audit — уязвимую версию нельзя выложить, не заметив.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /ДЗ6/poravnu
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Moscow
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    commit-message:
+      prefix: 'ДЗ6 deps'
+    groups:
+      # Мелкие обновления dev-инструментов — одним PR, чтобы не засыпать репозиторий.
+      dev-minor:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Moscow
+    labels: [dependencies]
+    commit-message:
+      prefix: 'ДЗ6 actions'

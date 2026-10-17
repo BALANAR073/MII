@@ -47,6 +47,31 @@ export function parseClientLogs(body: unknown): ClientLogRecord[] {
 }
 
 /**
+ * Пришёл ли запрос со страниц самого сайта (аудит ДЗ6, OWASP A04/A05).
+ * Без проверки любая чужая страница могла бы слать посетителям скрипт, который засыпает /api/log мусором:
+ * журнал раздувается, настоящие ошибки тонут. Браузер сам ставит `Sec-Fetch-Site` и `Origin`,
+ * подделать их из скрипта на чужом сайте нельзя. Запросы без этих заголовков (curl, мониторинг)
+ * пропускаются: от целенаправленного спама защищает лимит запросов на стороне Vercel (см. security_audit.md).
+ * @param headers Заголовки запроса.
+ * @param requestUrl Полный адрес запроса — из него берётся свой origin.
+ */
+export function isSameOriginRequest(headers: Headers, requestUrl: string): boolean {
+  const site = headers.get('sec-fetch-site');
+  if (site !== null) {
+    return site === 'same-origin';
+  }
+  const origin = headers.get('origin');
+  if (origin === null) {
+    return true;
+  }
+  try {
+    return origin === new URL(requestUrl).origin;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Удаляет из текста то, что похоже на персональные данные и секреты.
  * @param text Исходная строка.
  */
