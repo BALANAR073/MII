@@ -15,6 +15,7 @@ const GroupPage = lazy(() => import('../pages/GroupPage').then((m) => ({ default
 const HistoryPage = lazy(() => import('../pages/HistoryPage').then((m) => ({ default: m.HistoryPage })));
 const JoinPage = lazy(() => import('../pages/JoinPage').then((m) => ({ default: m.JoinPage })));
 const AuthCallbackPage = lazy(() => import('../pages/AuthCallbackPage').then((m) => ({ default: m.AuthCallbackPage })));
+const PrivacyPage = lazy(() => import('../pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })));
 const ExpenseDialog = lazy(() => import('../features/expenses/ExpenseDialog').then((m) => ({ default: m.ExpenseDialog })));
 
 /**
@@ -31,6 +32,8 @@ export function App() {
             <Route path="login" element={<AuthPage mode="login" />} />
             <Route path="register" element={<AuthPage mode="register" />} />
             <Route path="auth/callback" element={<AuthCallbackPage />} />
+            {/* Открыта без входа: ссылка на неё обязательна для публикации Google OAuth (ДЗ6). */}
+            <Route path="privacy" element={<PrivacyPage />} />
             {/* Приглашение открывается и без входа: гость видит превью (FR-1.2, FR-2.3). */}
             <Route path="join/:token" element={<JoinPage />} />
             <Route element={<Protected />}>

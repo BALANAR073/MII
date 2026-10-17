@@ -188,6 +188,12 @@ export function AuthPage({ mode }: AuthPageProps) {
           {isRegister ? 'Войти' : 'Зарегистрироваться'}
         </Link>
       </p>
+      <p className="mt-4 text-center text-xs text-slate-500">
+        Продолжая, вы соглашаетесь с{' '}
+        <Link to="/privacy" className="underline">
+          политикой конфиденциальности
+        </Link>
+      </p>
     </div>
   );
 }
