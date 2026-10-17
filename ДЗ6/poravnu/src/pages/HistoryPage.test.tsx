@@ -12,9 +12,9 @@ describe('Экран «История операций» (US-10, AC-T9.1)', () =
   it('показывает скелетон, затем расходы и переводы от новых к старым (AC-10.1)', async () => {
     // Без задержки ответ mock-API мог прийти раньше первой проверки, и скелетон исчезал незамеченным:
     // тест падал через раз на медленной машине CI (найдено аннотациями автотестов в ДЗ6).
-    configureMockApi({ latencyMs: 150 });
+    configureMockApi({ latencyMs: 400 });
     renderApp('/groups/flat/history');
-    expect(await screen.findByText('Загружаем историю…')).toBeInTheDocument();
+    expect(await screen.findByText('Загружаем историю…', {}, { timeout: 5000 })).toBeInTheDocument();
 
     const list = await screen.findByRole('list', { name: 'Операции' });
     const titles = within(list)

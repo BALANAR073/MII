@@ -12,9 +12,9 @@ describe('Экран «Группа»', () => {
 
   it('показывает скелетон, затем свой долг и три перевода Ане (AC-07.1, FR-4.5)', async () => {
     // Без задержки ответ mock-API приходил раньше первой проверки, и скелетон исчезал незамеченным.
-    configureMockApi({ latencyMs: 150 });
+    configureMockApi({ latencyMs: 400 });
     renderApp('/groups/kazan');
-    expect(await screen.findByText('Загружаем группу…')).toBeInTheDocument();
+    expect(await screen.findByText('Загружаем группу…', {}, { timeout: 5000 })).toBeInTheDocument();
 
     expect(await screen.findByRole('heading', { name: /Поездка в Казань/ })).toBeInTheDocument();
     expect(screen.getAllByText('940,75 ₽').length).toBeGreaterThan(0);
