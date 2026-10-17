@@ -79,6 +79,15 @@ export default tseslint.config(
     rules: { 'no-restricted-syntax': 'off' },
   },
 
+  // Сгенерированные типы Supabase: supabase-js ожидает type, а не interface (интерфейсы не проходят его обобщённые ограничения).
+  {
+    files: ['src/api/database.types.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-definitions': 'off',
+      '@typescript-eslint/consistent-indexed-object-style': 'off',
+    },
+  },
+
   // В тестах допустимы пустые заглушки и non-null после явной проверки.
   {
     files: ['**/*.test.{ts,tsx}', 'src/test/**', 'supabase/tests/**'],
