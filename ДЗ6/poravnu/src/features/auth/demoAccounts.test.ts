@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { demoAccounts } from './demoAccounts';
+import { demoAccounts, isDemoEmail } from './demoAccounts';
 
 describe('демо-аккаунты (ДЗ6)', () => {
   it('на сайте — аккаунты Supabase', () => {
@@ -16,5 +16,17 @@ describe('демо-аккаунты (ДЗ6)', () => {
       'gosha@poravnu.demo',
     ]);
     expect(accounts.every((account) => account.password.length >= 8)).toBe(true);
+  });
+});
+
+describe('isDemoEmail', () => {
+  it('узнаёт демо-аккаунты сайта и mock-API', () => {
+    expect(isDemoEmail('Borya.poravnu.demo@example.com')).toBe(true);
+    expect(isDemoEmail('anya@poravnu.demo')).toBe(true);
+  });
+
+  it('обычный и тестовый email — не демо', () => {
+    expect(isDemoEmail('kola@gmail.com')).toBe(false);
+    expect(isDemoEmail('e2e-abc-anya@example.com')).toBe(false);
   });
 });

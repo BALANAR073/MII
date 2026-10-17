@@ -278,6 +278,14 @@ function createAuthApi(client: Client, url: string, anonKey: string): AuthApi {
       }
       return userFromSupabase(data.user);
     },
+    deleteAccount: async () => {
+      await runVoid('delete_my_account', client.rpc('delete_my_account'));
+      // Пользователя на сервере уже нет — завершаем только локальную сессию.
+      const { error } = await client.auth.signOut({ scope: 'local' });
+      if (error !== null) {
+        throw loggedAuth('auth.sign_out', error);
+      }
+    },
     signInWithOAuth: async (provider, next) => {
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
       log('info', 'auth.oauth_started', { provider });

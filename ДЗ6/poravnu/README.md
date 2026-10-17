@@ -10,7 +10,7 @@
 - Макет: концепция 1 «Минимализм» из [`../../ДЗ3/ui_concepts/ui_description.md`](../../ДЗ3/ui_concepts/ui_description.md), плюс блок «Кто кому должен» из концепции 2 и десктопная раскладка из концепции 3.
 - **ДЗ6:** [`../integration_documentation.md`](../integration_documentation.md) — CI/CD, OAuth, Метрика, мониторинг, логи, примеры конфигураций; [`../security_audit.md`](../security_audit.md) — аудит безопасности; [`../deployment.md`](../deployment.md), [`../monitoring_logging.md`](../monitoring_logging.md).
 - Бэкенд: [`../../ДЗ5/backend_documentation.md`](../../ДЗ5/backend_documentation.md) — архитектура, развёртывание, API с примерами запросов.
-- Проектирование БД: [`../../ДЗ5/db_design.md`](../../ДЗ5/db_design.md).
+- База данных сейчас — таблицы, колонки, права, функции и что в ней лежит: [`../database.md`](../database.md); проектирование: [`../../ДЗ5/db_design.md`](../../ДЗ5/db_design.md).
 
 ## Что умеет
 

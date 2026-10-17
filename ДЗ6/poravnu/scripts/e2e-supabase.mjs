@@ -1,5 +1,5 @@
 // ДЗ5 · End-to-end проверка API на живом проекте Supabase (Шаг 8).
-// Запуск:  node scripts/e2e-supabase.mjs            — полный прогон на новых тестовых пользователях
+// Запуск:  node scripts/e2e-supabase.mjs            — полный прогон на новых тестовых пользователях (в конце удаляет их)
 //          node scripts/e2e-supabase.mjs --seed-demo — создать (или обновить) демо-группу «Поездка в Казань»
 // Адрес и публичный ключ берутся из .env.local (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).
 // Отчёт сохраняется в ../api_tests/e2e_results.md: каждая проверка — запрос, HTTP-статус, результат.
@@ -314,6 +314,19 @@ if (!SEED_DEMO) {
       return `HTTP ${response.status}, Access-Control-Allow-Origin: ${allow}`;
     },
   );
+
+  // ДЗ6, миграция 7: прогон убирает за собой — раньше тестовые пользователи копились в profiles.
+  await check('Уборка: тестовые пользователи удаляют свои аккаунты', 'POST /rest/v1/rpc/delete_my_account — от каждого', async () => {
+    for (const user of [anya, borya, vika, gosha, stranger]) {
+      const { error } = await user.c.rpc('delete_my_account');
+      expect(!error, error?.message ?? '');
+    }
+    const { error } = await client().auth.signInWithPassword({ email: `e2e-${run}-anya@example.com`, password });
+    expect(error !== null, 'вход удалённым аккаунтом прошёл');
+    const { data } = await client().rpc('get_invite_preview', { p_token: token });
+    expect(data === null || (Array.isArray(data) && data.length === 0), 'группа теста осталась');
+    return '5 аккаунтов и их группа удалены, вход удалённым аккаунтом отклонён';
+  });
 }
 
 const passed = results.filter((r) => r.ok).length;

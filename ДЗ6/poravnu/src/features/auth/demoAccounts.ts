@@ -30,3 +30,12 @@ export function demoAccounts(supabase: boolean = IS_SUPABASE): DemoAccount[] {
     password: supabase ? LIVE_DEMO_PASSWORD : MOCK_DEMO_PASSWORD,
   }));
 }
+
+/**
+ * Демо-аккаунт ли это: такие не удаляем из профиля, иначе кнопки «Войти как…» перестанут работать.
+ * @param email Email пользователя.
+ */
+export function isDemoEmail(email: string): boolean {
+  const normalized = email.trim().toLowerCase();
+  return normalized.endsWith('.poravnu.demo@example.com') || normalized.endsWith('@poravnu.demo');
+}
