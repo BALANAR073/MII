@@ -7,7 +7,7 @@ interface PrivacySectionProps {
 }
 
 /** Дата последней редакции политики — меняется вместе с текстом. */
-const REVISION_DATE = '17 октября 2026 г.';
+const REVISION_DATE = '17 октября 2026';
 const REPOSITORY_URL = 'https://github.com/BALANAR073/MII';
 
 /**
@@ -20,7 +20,7 @@ export function PrivacyPage() {
     <article className="mx-auto max-w-2xl px-4 py-8 text-slate-800">
       <h1 className="text-2xl font-semibold text-slate-900">Политика конфиденциальности</h1>
       <p className="mt-2 text-sm text-slate-600">
-        Сервис «ПоРовну» — учебный проект (КАИ, дисциплина «Методы искусственного интеллекта»). Редакция от {REVISION_DATE}.
+        Сервис «ПоРовну» — учебный проект (КАИ, дисциплина «Методы искусственного интеллекта»). Редакция от {REVISION_DATE} г.
       </p>
 
       <PrivacySection title="Какие данные мы храним">
