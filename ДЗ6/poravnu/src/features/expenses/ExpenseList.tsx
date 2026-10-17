@@ -5,7 +5,7 @@ import { formatRub } from '../../lib/money';
 import type { Expense, Member, MemberId } from '../../types/group';
 import { describeExpense, describeMyShare } from './describeExpense';
 import { FOCUS_RING_INSET } from '../../components/ui/styles';
-import { categoryOf } from '../../lib/categories';
+import { expenseCategory } from '../../lib/categories';
 
 const NO_PENDING: ReadonlySet<string> = new Set();
 
@@ -26,7 +26,7 @@ export function ExpenseList({ expenses, members, currentUserId, pendingIds = NO_
     <ul className="divide-y divide-slate-100" aria-label="Расходы">
       {expenses.map((expense) => {
         const pending = pendingIds.has(expense.id);
-        const category = categoryOf(expense.category);
+        const category = expenseCategory(expense);
         const content = (
           <>
             <span

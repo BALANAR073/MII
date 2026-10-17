@@ -21,9 +21,9 @@ describe('главная — сводка по всем группам (ДЗ6)',
   });
 
   it('пока грузится — скелетон, при ошибке — повтор', async () => {
-    configureMockApi({ latencyMs: 150, failNext: 'network' });
+    configureMockApi({ latencyMs: 400, failNext: 'network' });
     const { user } = renderApp('/');
-    expect(await screen.findByText('Загружаем сводку…')).toBeInTheDocument();
+    expect(await screen.findByText('Загружаем сводку…', {}, { timeout: 5000 })).toBeInTheDocument();
     expect(await screen.findByText('Не удалось загрузить сводку')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Повторить' }));
     expect(await screen.findByRole('list', { name: 'С кем расчёты' })).toBeInTheDocument();

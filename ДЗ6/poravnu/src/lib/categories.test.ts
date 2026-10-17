@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { categoryOf, guessCategory } from './categories';
+import { categoryOf, expenseCategory, guessCategory } from './categories';
 
 describe('категории расходов', () => {
   it('подбирает категорию по началу слова в названии', () => {
@@ -21,5 +21,16 @@ describe('категории расходов', () => {
     expect(categoryOf('food').label).toBe('Еда');
     expect(categoryOf(null).id).toBe('other');
     expect(categoryOf('nope').id).toBe('other');
+  });
+});
+
+describe('expenseCategory', () => {
+  it('сохранённая категория важнее названия', () => {
+    expect(expenseCategory({ category: 'fun', title: 'Такси' }).id).toBe('fun');
+  });
+
+  it('старый расход без категории — по названию, иначе «Другое»', () => {
+    expect(expenseCategory({ category: null, title: 'Пиво' }).id).toBe('food');
+    expect(expenseCategory({ title: 'Что-то странное' }).id).toBe('other');
   });
 });
